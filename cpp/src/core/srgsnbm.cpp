@@ -240,6 +240,9 @@ int srTGsnBeam::CreateWavefrontElFieldFreqDomain(srTSRWRadStructAccessData& RadA
 	//x0Prop = EbmDat.x0 + EbmDat.dxds0*LongDist;
 	//z0Prop = EbmDat.z0 + EbmDat.dzds0*LongDist;
 
+	double ActNormConstElField = NormConstElField; //OC081014
+	if(RadAccessData.ElecFldUnit == 2) ActNormConstElField *= sqrt(1.602176462e-16); //case of field units: sqrt(J/eV/mm^2) or sqrt(W/mm^2)
+
 	double InvLongDist = 1./LongDist;
 
 	float* tRadX = RadAccessData.pBaseRadX;
@@ -300,7 +303,8 @@ int srTGsnBeam::CreateWavefrontElFieldFreqDomain(srTSRWRadStructAccessData& RadA
 				double ExpAr = exp(argForExp);
 				double HermX = HermitePolynomial(mx, x*PropInvSigX), HermZ = HermitePolynomial(mz, z*PropInvSigZ);
 
-				double BufA = NormConstElField*sqrt(PropInvSigX*PropInvSigZ)*ExpAr*HermX*HermZ;
+				//double BufA = NormConstElField*sqrt(PropInvSigX*PropInvSigZ)*ExpAr*HermX*HermZ;
+				double BufA = ActNormConstElField*sqrt(PropInvSigX*PropInvSigZ)*ExpAr*HermX*HermZ; //OC081014
 				double ReA = BufA*CosPh, ImA = BufA*SinPh;
 
 				SetupProperPolariz(ReA, ImA, tRadX, tRadZ);
@@ -351,7 +355,8 @@ int srTGsnBeam::CreateWavefrontElFieldTimeDomain(srTSRWRadStructAccessData& RadA
 			double xe2 = x*x;
 
 			double Phase_T = m_AvgPhotEn_enMult_PropInvRx_T*xe2 + m_AvgPhotEn_enMult_PropInvRz_T*ze2 + m_PhaseLongDelay_T;
-			Phase_T -= TwoPI*long(Phase_T*InvTwoPI);
+			//Phase_T -= TwoPI*long(Phase_T*InvTwoPI);
+			Phase_T -= TwoPI*((long long)(Phase_T*InvTwoPI));
 			double CosPh_T = cos(Phase_T), SinPh_T = sin(Phase_T);
 			double argForExp0_T = -xe2*m_PropInvTwoSigXe2_T - ze2*m_PropInvTwoSigZe2_T;
 

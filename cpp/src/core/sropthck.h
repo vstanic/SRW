@@ -90,33 +90,74 @@ public:
 
 	//int WfrInterpolOnOrigGrid(srTSRWRadStructAccessData* pWfr, float* arRayTrCoord, float* arEX, float* arEY, float xRelOutMin, float xRelOutMax, float yRelOutMin, float yRelOutMax);
 	int WfrInterpolOnOrigGrid(srTSRWRadStructAccessData* pWfr, double* arRayTrCoord, float* arEX, float* arEY, double xRelOutMin, double xRelOutMax, double yRelOutMin, double yRelOutMax);
+	//int WfrInterpolOnOrigGrid2(srTSRWRadStructAccessData* pWfr, double* arRayTrCoord, long* arIndRayTrCoord, float* arEX, float* arEZ, double xMin, double xMax, double zMin, double zMax);
+	int WfrInterpolOnOrigGrid2(srTSRWRadStructAccessData* pWfr, double* arRayTrCoord, long long* arIndRayTrCoord, float* arEX, float* arEZ, double xMin, double xMax, double zMin, double zMax);
 
 	virtual void FindSurfNormalInLocFrame(double x, double y, TVector3d& vN) {}
 	virtual double SurfHeightInLocFrame(double x, double y) { return 0;}
 
 	virtual bool FindRayIntersectWithSurfInLocFrame(TVector3d& inP, TVector3d& inV, TVector3d& resP, TVector3d* pResN=0) 
 	{//find the intersection numerically; to imrove!!
-		const double badHeightThresh = -1.E+20;
 		const int maxIt = 15;
-		double ax = inV.x/inV.z, ay = inV.y/inV.z;
-		double x0 = inP.x, y0 = inP.y, z0 = inP.z;
-		double z = 0., y, x;
-		for(int i=0; i<maxIt; i++)
+		const double relSurfHeightTol = 1.E-15;
+		const double minAbsSurfHeightTol = 1.E-18; //[m]
+		
+		TVector3d vPpl(0.,0.,0.), vNpl(0.,0.,1.); //Initial Point on Plane and Normal
+		double t, x, y, z, zPl, absSurfHeightTol;
+		int i;
+		for(i=0; i<maxIt; i++)
 		{
-			x = ax*(z - z0) + x0;
-			y = ay*(z - z0) + y0;
-			z = SurfHeightInLocFrame(x, y);
-			if(z < badHeightThresh) return false;
-		}
-		resP.x = ax*(z - z0) + x0;
-		resP.y = ay*(z - z0) + y0;
-		resP.z = z;
+			//Finding Intersection Point with Tangential Plane
+			t = ((vPpl - inP)*vNpl)/(inV*vNpl);
+			x = inP.x + inV.x*t;
+			y = inP.y + inV.y*t;
+			zPl = inP.z + inV.z*t;
 
+			if(i == 0)
+			{
+				double dx = x - inP.x, dy = y - inP.y, dz = zPl - inP.z;
+				double maxDistEstim = sqrt(dx*dx + dy*dy + dz*dz);
+				absSurfHeightTol = maxDistEstim*relSurfHeightTol;
+				if(absSurfHeightTol < minAbsSurfHeightTol) absSurfHeightTol = minAbsSurfHeightTol;
+			}
+
+			//Finding Surface Height for (x, y) coordinates of Intersection Point with Tangential Plane
+			z = SurfHeightInLocFrame(x, y);
+
+			if(::fabs(z - zPl) < absSurfHeightTol) break;
+
+			//Finding Normal to the new Tangential Plane
+			FindSurfNormalInLocFrame(x, y, vNpl);
+			//Setting the Point on the new Tangential Plane
+			vPpl.x = x; vPpl.y = y; vPpl.z = z;
+		}
+		resP.x = x; resP.y = y; resP.z = z;
 		if(pResN != 0)
 		{
-			FindSurfNormalInLocFrame(resP.x, resP.y, *pResN);
+			FindSurfNormalInLocFrame(x, y, *pResN);
 		}
 		return true;
+
+		//const double badHeightThresh = -1.E+20;
+		//double ax = inV.x/inV.z, ay = inV.y/inV.z;
+		//double x0 = inP.x, y0 = inP.y, z0 = inP.z;
+		//double z = 0., y, x;
+		//for(int i=0; i<maxIt; i++)
+		//{
+		//	x = ax*(z - z0) + x0;
+		//	y = ay*(z - z0) + y0;
+		//	z = SurfHeightInLocFrame(x, y);
+		//	if(z < badHeightThresh) return false;
+		//}
+		//resP.x = ax*(z - z0) + x0;
+		//resP.y = ay*(z - z0) + y0;
+		//resP.z = z;
+
+		//if(pResN != 0)
+		//{
+		//	FindSurfNormalInLocFrame(resP.x, resP.y, *pResN);
+		//}
+		//return true;
 	}
 
 	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect) //virtual in srTGenOptElem
@@ -189,8 +230,10 @@ public:
 		int nComp = m_reflData.DimSizes[2];
 
 		const long perPhotEn = 2;
-		long perAng = perPhotEn*ne;
-		const long perSigPi = perAng*nAng;
+		//long perAng = perPhotEn*ne;
+		//const long perSigPi = perAng*nAng;
+		long long perAng = perPhotEn*ne;
+		long long perSigPi = perAng*nAng;
 
 		int ie = (int)((phEn - eStart)/eStep + 0.00001);
 		if((phEn - (eStart + ie*eStep)) > 0.5*eStep) ie++;
@@ -202,7 +245,8 @@ public:
 		if(iAng < 0) iAng = 0;
 		if(iAng >= nAng) iAng = nAng - 1;
 
-		long ofstSig = perPhotEn*ie + perAng*iAng;
+		//long ofstSig = perPhotEn*ie + perAng*iAng;
+		long long ofstSig = perPhotEn*ie + perAng*iAng;
 		//setting appropriate pointer type 
 		if(m_reflData.DataType[1] == 'f')
 		{
@@ -278,7 +322,7 @@ public:
 	bool FindRayIntersectWithSurfInLocFrame(TVector3d& inP, TVector3d& inV, TVector3d& resP, TVector3d* pResN=0) //virtual in srTMirror
 	{//Returns coordinates of the intersection point in the Local frame (resP), and, optionally, components of the surface normal at the intersection point (always in the Local frame)
 	 //inP and inV are respectively point and vector identifying the input ray
-	 //In the Local frame: tangential direction is X, saggital Y, mirror normal is along Z, and plane has equation: z = 0
+	 //In the Local frame: tangential direction is X, saggital Y, mirror normal is along Z, and plane equation is: z = 0
 		
 		//test
 		//if(inV.z == 0.) inV.z = 1e-13;
@@ -326,6 +370,16 @@ public:
 		m_axE2 = m_ax*m_ax;
 		double twoTheta = m_angGraz*2.;
 		double alp = atan(sin(twoTheta)/(m_p/m_q + cos(twoTheta)));
+
+		if(m_vCenTang.z >= 0.) //OC170116
+		{
+			if(alp < 0.) alp = -alp;
+		}
+		else
+		{
+			if(alp >= 0.) alp = -alp;
+		}
+
 		double sinAlp = sin(alp);
 		double sinAlpE2 = sinAlp*sinAlp;
 		double q_plus_p_sinAlpE2 = m_q + m_p*sinAlpE2;
@@ -335,7 +389,10 @@ public:
 		double x0E2 = (m_axE2 - m_p*m_q)/e2;
 		double x0 = sqrt(x0E2);
 		if(m_p > m_q) x0 = -x0;
-		double z0 = -m_p*sinAlp;
+		
+		//double z0 = -m_p*sinAlp;
+		double z0 = m_p*sinAlp; //OC170116
+
 		double tgBet = -m_az*x0/sqrt(1. - x0E2/m_axE2);
 		double tgBetE2 = tgBet*tgBet;
 		double aux1 = m_axE2 + m_azE2*tgBetE2;
@@ -428,6 +485,7 @@ public:
 
 	bool FindRayIntersectWithSurfInLocFrame(TVector3d& inP, TVector3d& inV, TVector3d& resP, TVector3d* pResN=0) //virtual in srTMirror
 	{//returns coordinates of the intersection point in the Local frame (resP), and, optionally, components of the surface normal at the intersection point (always in the Local frame)
+		
 		//Coordinates of all points and vectors in the frame where the elipse is described by x^2/m_ax^2 + y^2/m_ay^2 + z^2/m_az^2 = 1:
 		//double x0 = m_xcLocNorm + inP.x*m_cosAngGraz + inP.z*m_sinAngGraz;
 		double x0 = m_xcLocNorm + inP.x*m_cosAngRotNormLoc + inP.z*m_sinAngRotNormLoc;
@@ -459,7 +517,7 @@ public:
 		double yi = vy*t0 + y0;
 		double zi = vz*t0 + z0;
 
-		//Verification if angular coordinat of the intersection point is withing aloowable limits
+		//Verification if angular coordinate of the Intersection Point is withing allowable limits
 		const double Pi = 3.141592653589793;
 		const double twoPi = 2.*Pi;
 		double phi = asin(xi/m_ax);
@@ -543,9 +601,7 @@ public:
 		vN.y = ny*inv_norm;
 		vN.z = inv_norm;
 	}
-**/	
 
-/**
 	double SurfHeightInLocFrame(double x, double y) //virtual in srTMirror
 	{
 		const double badRes = -1.E+23; //to return in case inanything goes wrong
@@ -564,6 +620,87 @@ public:
 
 //*************************************************************************
 
+class srTMirrorSphere : public srTMirror {
+
+	double m_rad; //input
+
+public:
+
+	srTMirrorSphere(const SRWLOptMirSph& mirSph);
+
+	bool FindRayIntersectWithSurfInLocFrame(TVector3d& inP, TVector3d& inV, TVector3d& resP, TVector3d* pResN = 0) //virtual in srTMirror
+	{//Returns coordinates of the intersection point in the Local frame (resP), and, optionally, components of the surface normal at the intersection point ((*pResN), always in the Local frame)
+	 //inP and inV are respectively point and vector identifying the input ray
+	 //In the Local frame: tangential direction is X, saggital Y, mirror normal is along Z, and the sphere equation is: x^2 + y^2 + (z - r)^2 = r^2
+
+		double ax = inV.x/inV.z, ay = inV.y/inV.z;
+		double axe2 = ax*ax, aye2 = ay*ay;
+		double axe2_p_aye2_p_1 = axe2 + aye2 + 1.;
+		double A = m_rad - ax*inP.x - ay*inP.y + (axe2 + aye2)*inP.z;
+		double x0_mi_ax_z0 = inP.x - ax*inP.z;
+		double y0_mi_ay_z0 = inP.y - ay*inP.z;
+		double argR = A*A - axe2_p_aye2_p_1*(x0_mi_ax_z0*x0_mi_ax_z0 + y0_mi_ay_z0*y0_mi_ay_z0);
+		if(argR < 0.) return false;
+
+		double R = sqrt(argR);
+		double inv_axe2_p_aye2_p_1 = 1./axe2_p_aye2_p_1;
+
+		//To check this solution:
+		resP.z = (m_rad > 0.)? (A - R)*inv_axe2_p_aye2_p_1 : (A + R)*inv_axe2_p_aye2_p_1;
+		double dzs = resP.z - inP.z;
+		resP.x = inP.x + ax*dzs;
+		resP.y = inP.y + ay*dzs;
+
+		if(pResN != 0)
+		{
+			if(m_rad > 0.)
+			{
+				pResN->x = -resP.x;
+				pResN->y = -resP.y;
+				pResN->z = m_rad - resP.z;
+			}
+			else
+			{
+				pResN->x = resP.x;
+				pResN->y = resP.y;
+				pResN->z = resP.z - m_rad; //?
+			}
+			pResN->Normalize();
+		}
+		return true;
+	}
+
+	double SurfHeightInLocFrame(double x, double y) //virtual in srTMirror
+	{
+		double aSmall = -(x*x + y*y) / (m_rad*m_rad);
+		return -m_rad*CGenMathMeth::radicalOnePlusSmallMinusOne(aSmall);
+	}
+
+	void FindSurfNormalInLocFrame(double x, double y, TVector3d& vN) //virtual in srTMirror
+	{//In Local frame: tangential direction is X, saggital Y; output vector is normalized to 1
+	 //In the Local frame: tangential direction is X, saggital Y, mirror normal is along Z, and the sphere equation is: x^2 + y^2 + (z - r)^2 = r^2
+
+		double aSmall = -(x*x + y*y)/(m_rad*m_rad);
+		double zi = -m_rad*CGenMathMeth::radicalOnePlusSmallMinusOne(aSmall);
+
+		if(m_rad > 0.)
+		{
+			vN.x = -x;
+			vN.y = -y;
+			vN.z = m_rad - zi;
+		}
+		else
+		{
+			vN.x = x;
+			vN.y = y;
+			vN.z = zi - m_rad; //?
+		}
+		vN.Normalize();
+	}
+};
+
+//*************************************************************************
+
 class srTMirrorToroid : public srTMirror {
 	
 	double m_Rt, m_Rs;
@@ -573,9 +710,12 @@ public:
 	srTMirrorToroid(srTStringVect* pElemInfo, srTDataMD* pExtraData);
 	srTMirrorToroid(const SRWLOptMirTor& mirTor);
 
+	//bool FindRayIntersectWithSurfInLocFrame(TVector3d& inP, TVector3d& inV, TVector3d& resP, TVector3d* pResN = 0) 
+	//use the iterative version of srTMirror
+
 	double SurfHeightInLocFrame(double x, double y) //virtual in srTMirror
 	{
-		const double badRes = -1.E+23; //to return in case inanything goes wrong
+		const double badRes = -1.E+23; //to return in case if anything goes wrong, i.e. if (x, y) don't belong to torus
 		double ry = y/m_Rs;
 		double rye2 = ry*ry;
 		if(rye2 > 1.) return badRes;
@@ -588,6 +728,26 @@ public:
 
 	void FindSurfNormalInLocFrame(double x, double y, TVector3d& vN) //virtual in srTMirror
 	{//In the Local frame: tangential direction is X, saggital Y; output vector is normalized to 1
+		//const double badRes = -1.E+23; //to return in case if anything goes wrong, i.e. if (x, y) don't belong to torus
+		vN.x = 0.; vN.y = 0.; vN.y = 0.;
+
+		double ry = y/m_Rs;
+		double rye2 = ry*ry;
+		if(rye2 > 1.) return;
+
+		double radSmi1 = CGenMathMeth::radicalOnePlusSmallMinusOne(-rye2);
+		double a1 = radSmi1*m_Rs/m_Rt;
+		double rx = x/m_Rt;
+		double a2 = a1*(a1 + 2.) - rx*rx;
+		if(a2 < -1.) return;
+		double invRad = 1./(CGenMathMeth::radicalOnePlusSmallMinusOne(a2) + 1.);
+
+		vN.x = -rx*invRad;
+		vN.y = -ry*invRad*(a1 + 1.)/(radSmi1 + 1.);
+		vN.z = 1.;
+		vN.Normalize();
+
+/**
 		double sqrt1 = sqrt(m_Rs*m_Rs - y*y);
 		double R_mi_r_p_radS = m_Rt - m_Rs + sqrt1;
 		double inv_sqrt2 = 1./sqrt(R_mi_r_p_radS*R_mi_r_p_radS - x*x);
@@ -597,10 +757,9 @@ public:
 		vN.x = nx*inv_norm;
 		vN.y = ny*inv_norm;
 		vN.z = inv_norm;
+**/
 	}
-
 };
-
 
 //*************************************************************************
 //OBSOLETE?

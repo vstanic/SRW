@@ -1,12 +1,13 @@
 #############################################################################
 # uti_math module: misc. mathematical utilities / functions
-# v 0.01
+# v 0.02
+# Authors: O.C., Maksim Rakitin
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
 from array import *
 from math import *
-#from copy import *
+from copy import *
 #import random
 #import sys
 #import os
@@ -70,6 +71,132 @@ def interp_1d(_x, _x_min, _x_step, _nx, _ar_f, _ord=3, _ix_per=1, _ix_ofst=0):
         a3 = 0.5*(a0 - f1) + (f2 - fm1)/6.
         return a0 + t*(a1 + t*(a2 + t*a3))
     return 0
+
+#****************************************************************************
+#def interp_1d_lin_var(_x, _ar_x, _ar_f):
+def interp_1d_var(_x, _ar_x, _ar_f, _ord=3):
+    """
+    Interpolate linearly 1D function value tabulated on non-equidistant (irregular) mesh
+    :param _x: argument at which function value should be calculated
+    :param _ar_x: array or list of increasing argument values, at which the function is tabulated
+    :param _ar_f: array or list of tabulated values corresponding to arguments in _ar_x
+    :param _ord: order of polynomial interpolation (1- linear, 2- quadratic, 3- cubic)    
+    :return: function value found by polynomial interpolation
+    """
+
+    sErrBadArrays = 'Incorrect/incompatible lengths of argument and function value arrays.'
+
+    nx = len(_ar_x)
+    if(nx <= 0): raise Exception(sErrBadArrays)
+    nf = len(_ar_f)
+    if(nf <= 0): raise Exception(sErrBadArrays)
+    
+    if(nx > nf): nx = nf
+    if(nx < 2): raise Exception(sErrBadArrays)
+    
+    nx_mi_1 = nx - 1
+
+    if(_x <= _ar_x[0]): return _ar_f[0]
+    elif(_x >= _ar_x[nx_mi_1]): return _ar_f[nx_mi_1]
+
+    if(_ord > nx_mi_1): _ord = nx_mi_1
+
+    i0 = 0
+    for i in range(1, nx):
+        if(_x < _ar_x[i]):
+            i0 = i - 1
+            break
+
+    if(_ord == 1):
+        #return interp_1d(_x, _ar_x[i0], _ar_x[i0+1] - _ar_x[i0], 2, [_ar_f[i0], _ar_f[i0+1]], 1)
+        x0 = _ar_x[i0]
+        step = _ar_x[i0+1] - x0
+        t = (_x - x0)/step
+        f0 = _ar_f[i0]
+        return f0 + (_ar_f[i0+1] - f0)*t
+
+    elif(_ord == 2):
+        im1 = i0 - 1
+        ip1 = i0 + 1
+        #nm1 = nx - 1
+        if(ip1 < 0):
+            im1 = 0
+            i0 = 1
+            ip1 = 2
+        elif(ip1 > nx_mi_1):
+            im1 = nx - 3
+            i0 = nx - 2
+            ip1 = nx_mi_1
+
+        xm1 = _ar_x[im1]
+        x0 = _ar_x[i0]
+        xp1 = _ar_x[ip1]
+        dxm1 = abs(_x - xm1)
+        dx0 = abs(_x - x0)
+        dxp1 = abs(_x - xp1)
+        if(dxm1 < dx0):
+            if(im1 > 0):
+                im1 -= 1
+                i0 -= 1
+                ip1 -= 1
+        elif(dxp1 < dx0):
+            if(ip1 < nx_mi_1):
+                im1 += 1
+                i0 += 1
+                ip1 += 1
+
+        x0 = _ar_x[i0]
+        dxm1 = _ar_x[im1] - x0
+        dxp1 = _ar_x[ip1] - x0
+        fm1 = _ar_f[im1]
+        f0 = _ar_f[i0]
+        fp1 = _ar_f[ip1]
+
+        invD = 1./(dxm1* dxp1*(dxm1 - dxp1))
+        a = ((dxm1 - dxp1)*f0 + dxp1*fm1 - dxm1*fp1)*invD
+        b = (dxp1*dxp1*(f0 - fm1) + dxm1*dxm1*(fp1 - f0))*invD
+        dx = _x - x0
+        return (a*dx + b)*dx + f0
+
+    elif(_ord == 3):
+        im1 = i0 - 1
+        ip1 = i0 + 1
+        ip2 = i0 + 2
+        if(im1 < 0):
+            im1 = 0
+            i0 = 1
+            ip1 = 2
+            ip2 = 3
+        elif(ip2 > nx_mi_1):
+            im1 = nx - 4
+            i0 = nx - 3
+            ip1 = nx - 2
+            ip2 = nx_mi_1
+            
+        x0 = _ar_x[i0]
+        dxm1 = _ar_x[im1] - x0
+        dxp1 = _ar_x[ip1] - x0
+        dxp2 = _ar_x[ip2] - x0
+        fm1 = _ar_f[im1]
+        f0 = _ar_f[i0]
+        fp1 = _ar_f[ip1]
+        fp2 = _ar_f[ip2]
+        #print(_x - x0, dxm1, dxp1, dxp2)
+        #print(fm1, f0, fp1, fp2)
+
+        invD = 1./(dxm1*dxp1*dxp2*(dxm1 - dxp1)*(dxm1 - dxp2)*(dxp1 - dxp2))
+        invD1 = 1./(dxm1*dxp1*dxp2)
+        dxm1e2 = dxm1*dxm1
+        dxm1e3 = dxm1e2*dxm1
+        dxp1e2 = dxp1*dxp1
+        dxp1e3 = dxp1e2*dxp1
+        dxp2e2 = dxp2*dxp2
+        dxp2e3 = dxp2e2*dxp2
+        a1 = (-dxp1e2*(dxp1 - dxp2)*dxp2e2*(f0 - fm1) + dxm1e2*(dxp2e3*(fp1 - f0) + dxp1e3*(f0 - fp2)) + dxm1e3*(dxp2e2*(f0 - fp1) + dxp1e2*(fp2 - f0)))*invD
+        a2 = ((dxm1 + dxp1 + dxp2)*f0)*invD1 + (dxm1*dxp2*(dxm1e2 - dxp2e2)*fp1 + dxp1e3*(dxm1*fp2 - dxp2*fm1) + dxp1*(dxp2e3*fm1 - dxm1e3*fp2))*invD
+        a3 = -f0*invD1 + (dxm1*dxp2*(dxp2 - dxm1)*fp1 + dxp1e2*(dxp2*fm1 - dxm1*fp2) + dxp1*(dxm1e2*fp2 - dxp2e2*fm1))*invD
+        dx = _x - x0
+        return ((a3*dx + a2)*dx + a1)*dx + f0
 
 #****************************************************************************
 def interp_2d(_x, _y, _x_min, _x_step, _nx, _y_min, _y_step, _ny, _ar_f, _ord=3, _ix_per=1, _ix_ofst=0):
@@ -217,11 +344,299 @@ def interp_2d(_x, _y, _x_min, _x_step, _nx, _y_min, _y_step, _ny, _ar_f, _ord=3,
 
 #****************************************************************************
 def num_round(_x, _ndig=8):
-    if(_x == 0.): return _x
-    sgn = 1
-    if(_x < 0.):
-        _x = -_x
-        sgn = -1
-    order = round(log10(_x))
-    fact = 10**order
-    return round(_x/fact, _ndig)*fact*sgn
+##    if(_x == 0.): return _x
+##    sgn = 1.
+##    if(_x < 0.):
+##        _x = -_x
+##        sgn = -1
+##    order = round(log10(_x))
+##    fact = 10**order
+##    roundNum = round(_x/fact, _ndig)
+##    res = roundNum*fact*sgn
+    res = round(_x, _ndig)
+    return res
+
+#****************************************************************************
+def find_ar_max(_ar, _ib=0, _ie=-1, _min=False):
+    """
+    Finds array (or list) maximum (or minimum), index and value 
+    :param _ar: array (or list) to find max. or min.
+    :param _ib: array index to start search
+    :param _ie: array index to finish search
+    :param _min: switch specifying that minimum (rather than maximum) has to be searched
+    """
+
+    if((_ar == None) or (len(_ar) <= 0)): raise Exception('Incorrect input array.')
+    if(_ie < _ib): raise Exception('Incorrect definition of start and end indexes.')
+
+    nTot = len(_ar)
+
+    iBeg = _ib
+    if(_ib < 0): iBeg = 0
+    
+    iEnd = _ie
+    if(_ie >= nTot): iEnd = nTot - 1
+
+    curExtr = _ar[0]
+    curInd = 0
+    for i in range(iBeg, iEnd + 1, 1):
+        curVal = _ar[i]
+        if(_min == True): curVal *= -1
+        if(curExtr < curVal): 
+            curExtr = curVal
+            curInd = i
+
+    return curExtr, curInd
+
+#****************************************************************************
+def integ_array(_ar, _h, _dupl=False):
+    """
+    Integrates array (or list), eventually making a copy of it before the integration
+    :param _ar: array to integrate
+    :param _h: step size
+    :param _dupl: duplicate the magnetic field object or not
+    """
+    ar = None
+    if(_dupl): ar = deepcopy(_ar)
+    else: ar = _ar
+
+    hd2 = 0.5*_h
+    auxInt = 0
+    lenAr = len(_ar)
+    for i in range(lenAr - 1):
+        ar_i = _ar[i] #in case if array has to be integrated in place
+        ar[i] = auxInt
+        auxInt += hd2*(ar_i + _ar[i + 1])
+    ar[lenAr - 1] = auxInt
+    return ar
+
+#****************************************************************************
+def integ_ar_2d(_ar, _ar_align, _x_grid, _y_grid, _x_lim=None, _y_lim=None):
+    """
+    Integrates 2d array (or list) within given limits
+    :param _ar: input array to integrate
+    :param _ar_align: input array alignment (1- _ar is C-type alignment, 2- _ar is 2d array)
+    :param _x_grid: list/array specifying grid vs one dimensions (_x_grid[0] is start, _x_grid[1] is end, _x_grid[2] is number of points)
+    :param _y_grid: list/array specifying grid vs another dimensions (_y_grid[0] is start, _y_grid[1] is end, _y_grid[2] is number of points)
+    :param _x_lim: list/array specifying inegration limits vs one dimensions (_x_lim[0] is start, _x_lim[1] is end)
+    :param _y_lim: list/array specifying inegration limits vs another dimensions (_y_lim[0] is start, _y_lim[1] is end)
+    """
+
+    if(_x_lim != None):
+        #print(_x_lim[0], _x_lim[1])
+        if(_x_lim[0] >= _x_lim[1]): return 0.
+
+    if(_y_lim != None):
+        #print(_y_lim[0], _y_lim[1])
+        if(_y_lim[0] >= _y_lim[1]): return 0.
+
+    #print(_x_grid); print(_x_lim)
+    #print(_y_grid); print(_y_lim)
+    
+    xStart = _x_grid[0]; xEnd = _x_grid[1]; nx = _x_grid[2]
+    xStep = (xEnd - xStart)/(nx - 1)
+    yStart = _y_grid[0]; yEnd = _y_grid[1]; ny = _y_grid[2]
+    yStep = (yEnd - yStart)/(ny - 1)
+
+    if((xStep == 0) or (yStep == 0)): return 0.
+
+    x_min = xStart; x_max = xEnd; nxInteg = 0
+    if(_x_lim != None):
+        x_min = _x_lim[0]
+        x_max = _x_lim[1]
+        if(len(_x_lim) > 2): nxInteg = int(round(_x_lim[2]))
+
+    y_min = yStart; y_max = yEnd; nyInteg = 0
+    if(_y_lim != None):
+        y_min = _y_lim[0]
+        y_max = _y_lim[1]
+        if(len(_y_lim) > 2): nyInteg = int(round(_y_lim[2]))
+
+    if((nxInteg > 2) and (nyInteg > 2) and (_ar_align == 1)): #perform inregration using 2D interpolation
+        
+        arAuxIntegWave2Dx = array('d', [0]*nxInteg)
+        if(x_min < xStart): x_min = xStart
+        if(x_max > xEnd): x_max = xEnd
+        xStepInteg = (x_max - x_min)/(nxInteg - 1)
+        
+        arAuxIntegWave2Dy = array('d', [0]*nyInteg)
+        if(y_min < yStart): y_min = yStart
+        if(y_max > yEnd): y_max = yEnd
+        yStepInteg = (y_max - y_min)/(nyInteg - 1)
+
+        yy = y_min
+        for iy in range(nyInteg):
+            xx = x_min
+            for ix in range(nxInteg):
+                arAuxIntegWave2Dx[ix] = interp_2d(xx, yy, xStart, xStep, nx, yStart, yStep, ny, _ar, _ord=2)
+                xx += xStepInteg
+
+            arAux = integ_array(arAuxIntegWave2Dx, xStepInteg)
+            arAuxIntegWave2Dy[iy] = arAux[nxInteg - 1]
+            yy += yStepInteg
+
+        arAux = integ_array(arAuxIntegWave2Dy, yStepInteg)
+        resInteg = arAux[nyInteg - 1]
+        return resInteg
+
+    ixStart = int((x_min - xStart)/xStep + 0.e-12)
+    if(ixStart < 0): ixStart = 0
+    else:
+        if(ixStart >= nx): ixStart = nx - 1
+    #print('ixStart=', ixStart)
+    
+    iyStart = int((y_min - yStart)/yStep + 0.e-12)
+    if(iyStart < 0): iyStart = 0
+    else:
+        if(iyStart >= ny): iyStart = ny - 1
+    #print('iyStart=', iyStart)
+
+    ixEnd = int((x_max - xStart)/xStep - 1.e-06) + 1
+    if(ixEnd < 0): ixEnd = 0
+    else: 
+        if(ixEnd >= nx): ixEnd = nx - 1
+    #print('ixStart=', ixStart, 'ixEnd=', ixEnd)
+
+    iyEnd = int((y_max - yStart)/yStep - 1.e-06) + 1
+    if(iyEnd < 0): iyEnd = 0
+    else:
+        if(iyEnd >= ny): iyEnd = ny - 1
+    #print('iyStart=', iyStart, 'iyEnd=', iyEnd)
+
+    if((ixStart >= ixEnd) or (iyStart >= iyEnd)): return 0.
+
+    nxi = ixEnd - ixStart + 1
+    ##make/O/N=(nxi) wAuxIntegWave2Dx
+    ##SetScale/P x, xStart + ixStart*xStep, xStep, "", wAuxIntegWave2Dx
+    arAuxIntegWave2Dx = array('d', [0]*nxi)
+
+    nyi = iyEnd - iyStart + 1
+    ##make/O/N=(nyi) wAuxIntegWave2Dy
+    ##SetScale/P x, yStart + iyStart*yStep, yStep, "", wAuxIntegWave2Dy
+    arAuxIntegWave2Dy = array('d', [0]*nyi)
+
+    ##for(iy = 0; iy < nyi; iy += 1)
+    ##	wAuxIntegWave2Dx = w2d[ixStart + p][iyStart + iy]
+    ##	integrate/T wAuxIntegWave2Dx
+    ##	wAuxIntegWave2Dy[iy] = wAuxIntegWave2Dx(x_max) - wAuxIntegWave2Dx(x_min)
+    ##endfor
+
+    iyAbs_nx = 0
+    ar_iyAbs = None
+    for iy in range(nyi):
+        iyAbs = iy + iyStart
+        if(_ar_align == 1): iyAbs_nx = iyAbs*nx
+        else: ar_iyAbs = _ar[iyAbs]
+        
+        for ix in range(nxi):
+            ixAbs = ix + ixStart
+            if(_ar_align == 1): arAuxIntegWave2Dx[ix] = _ar[iyAbs_nx + ixAbs]
+            else: arAuxIntegWave2Dx[ix] = ar_iyAbs[ixAbs]
+
+        #print(xStep, arAuxIntegWave2Dx)
+        arAux = integ_array(arAuxIntegWave2Dx, xStep)
+        arAuxIntegWave2Dy[iy] = arAux[nxi - 1]
+
+    ##integrate/T wAuxIntegWave2Dy
+    ##variable res = wAuxIntegWave2Dy(y_max) - wAuxIntegWave2Dy(y_min)
+
+    arAux = integ_array(arAuxIntegWave2Dy, yStep)
+    resInteg = arAux[nyi - 1]
+    return resInteg
+
+#****************************************************************************
+def matr_prod(_A, _B):
+    """
+    Multiplies matrix _A by matrix _B 
+    """
+    # Matrix multiplication
+    B0 = _B[0]
+    lenB = len(_B)
+    lenA = len(_A)
+    if(len(_A[0]) != lenB): # Check matrix dimensions        
+        Exception('Matrices have wrong dimensions')
+    if(isinstance(B0, list) or isinstance(B0, array) or isinstance(B0, tuple)): #_B is matrix
+        lenB0 = len(B0)
+        C = [[0 for row in range(lenB0)] for col in range(lenA)]
+        for i in range(lenA):
+            for j in range(lenB0):
+                for k in range(lenB):
+                    C[i][j] += _A[i][k]*_B[k][j]
+    else: #_B is vector
+        C = [0 for row in range(lenB)]
+        for i in range(lenA):
+            for k in range(lenB):
+                C[i] += _A[i][k]*_B[k]
+    return C
+
+#****************************************************************************
+def matr_print(_A):
+    """
+    Prints matrix _A
+    """
+    for i in range(len(_A)):
+        print(_A[i])
+ 
+#****************************************************************************
+def trf_rotation(_V, _ang, _P):
+    """
+    Sets up matrix and vector describing rotation about axis _V passing through a point _P about an angle _ang
+    :param _V: vector (array of 3 Cartesian coordinates) rdefining rotation axis
+    :param _ang: rotation angle [rad]
+    :param _P: point (array of 3 Cartesian coordinates) rotation axis passes through
+    :returns list containing the 3x3 matrix and 3-element vector
+    """
+    normFact = 1./sqrt(_V[0]*_V[0] + _V[1]*_V[1] + _V[2]*_V[2]);
+    axVect = [normFact*_V[0], normFact*_V[1], normFact*_V[2]]
+    VxVx = axVect[0]*axVect[0]
+    VyVy = axVect[1]*axVect[1]
+    VzVz = axVect[2]*axVect[2]
+    cosAng = cos(_ang)
+    sinAng = sin(_ang)
+    one_m_cos = 1. - cosAng
+    one_m_cosVxVy = one_m_cos*axVect[0]*axVect[1]
+    one_m_cosVxVz = one_m_cos*axVect[0]*axVect[2]
+    one_m_cosVyVz = one_m_cos*axVect[1]*axVect[2]
+    sinVx = sinAng*axVect[0]
+    sinVy = sinAng*axVect[1]
+    sinVz = sinAng*axVect[2]
+    st0 = [VxVx + cosAng*(VyVy + VzVz), one_m_cosVxVy - sinVz, one_m_cosVxVz + sinVy]
+    st1 = [one_m_cosVxVy + sinVz, VyVy + cosAng*(VxVx + VzVz), one_m_cosVyVz - sinVx]
+    st2 = [one_m_cosVxVz - sinVy, one_m_cosVyVz + sinVx, VzVz + cosAng*(VxVx + VyVy)]
+    M = [st0, st1, st2]
+    st00 = [1. - st0[0], -st0[1], -st0[2]]
+    st01 = [-st1[0], 1. - st1[1], -st1[2]]
+    st02 = [-st2[0], -st2[0], 1. - st2[2]]
+    M0 = [st00, st01, st02]
+    V = matr_prod(M0, _P)
+    return [M, V]
+
+#****************************************************************************
+def fwhm(x, y): #MR27092016
+    """The function searches x-values (roots) where y=0 based on linear interpolation, and calculates FWHM"""
+
+    def is_positive(num):
+        return True if num > 0 else False
+
+    positive = is_positive(y[0])
+    list_of_roots = []
+    for i in range(len(y)):
+        current_positive = is_positive(y[i])
+        if current_positive != positive:
+            list_of_roots.append(x[i - 1] + (x[i] - x[i - 1]) / (abs(y[i]) + abs(y[i - 1])) * abs(y[i - 1]))
+            positive = not positive
+    if len(list_of_roots) >= 2:
+        return abs(list_of_roots[-1] - list_of_roots[0])
+    else:
+        raise Exception('Number of roots is less than 2!')
+
+#****************************************************************************
+def fwhm_scipy(x, y): #MR27092016
+    """Computing FWHM (Full width at half maximum)"""
+    try:
+        from scipy.interpolate import UnivariateSpline
+        spline = UnivariateSpline(x, y, s=0)
+        r1, r2 = spline.roots()  # find the roots
+        return r2 - r1  # return the difference (full width)
+    except ImportError:
+        return fwhm(x, y)

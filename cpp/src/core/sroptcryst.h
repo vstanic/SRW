@@ -1,6 +1,6 @@
 /************************************************************************//**
  * File: sroptcryst.h
- * Description: Optical element: Angle (header)
+ * Description: Optical element: Crystal (header)
  * Project: Synchrotron Radiation Workshop
  * First release: 2013
  *
@@ -20,6 +20,7 @@
 
 #undef max //to avoid name conflict of numeric_limits<double>::max() and #define max(a, b) to allow for compilation with VC++2013
 #include <limits>
+#include <complex>
 
 //*************************************************************************
 
@@ -51,6 +52,8 @@ class srTOptCryst : public srTGenOptElem {
 	//TVector3d m_nv; // horizontal, vertical and longitudinal coordinates of outward normal to crystal surface in the frame of incident beam
 	TVector3d m_tv; // horizontal, vertical and longitudinal coordinates of central tangential vector [m] in the frame of incident beam
 	TVector3d m_sv; // horizontal, vertical and longitudinal coordinates of central saggital vector [m] in the frame of incident beam
+	
+	char m_uc; // crystal use case: 1- Bragg Reflection, 2- Bragg Transmission (Laue cases to be added)
 
 	// TRANSFORMATION MATRIX
 	double m_RXtLab[3][3]; // RXtLab: 3x3 orthogonal matrix that converts components of a 3x1 vector in crystal coordinates to components in lab coordinates. 
@@ -63,14 +66,15 @@ class srTOptCryst : public srTGenOptElem {
 	//double m_KLabRef[2][3]; // matrix to transform Kin to Kout
 
 	double m_PolTrn[2][2]; // 2x2 transformation matrix of the polarizations from (e1X,e2X) to (sg0X,pi0X).
+	double m_InvPolTrn[2][2]; //OC06092016
 	double m_HXAi[3]; // Reciprocal lattice vector coordinates
 
 	double m_sg0X[3];
-
 	double m_cos2t; //cos(2.*thBrd); 
 
 	srTOptCrystMeshTrf *m_pMeshTrf;
 	double m_eStartAux, m_eStepAux, m_ne;
+	//bool m_xStartIsConstInSlicesE, m_zStartIsConstInSlicesE;
 
 public:
 
@@ -97,22 +101,18 @@ public:
 		m_thicum = srwlCr.tc*1e+06; //assuming srwlCr.tc in [m]
 		double alphrd = srwlCr.angAs; //asymmetry angle [rad]
 
-		// Input #7: Whether to calculate the transmitted beam as well as the diffracted 
-		// beam. itrans = 0 for NO, itrans = 1 for YES. 
-		m_itrans = 0; //OC: make it input variable
-
 		// From Input #5: reciprocal lattice vector coordinates 
 		m_HXAi[0] = 0.;
 		m_HXAi[1] = cos(alphrd) / m_dA;
 		m_HXAi[2] = -sin(alphrd) / m_dA;
 
-		if(srwlCr.nvz == 0) { throw IMPROPER_OPTICAL_COMPONENT_ORIENT; }
+		if(srwlCr.nvz == 0) throw IMPROPER_OPTICAL_COMPONENT_ORIENT;
 		
 		TVector3d v_nv(srwlCr.nvx, srwlCr.nvy, srwlCr.nvz); /* horizontal, vertical and longitudinal coordinates of outward normal to crystal surface in the frame of incident beam */
 		v_nv.Normalize();
 		double nv[] = { v_nv.x, v_nv.y, v_nv.z };
 
-		if((srwlCr.tvx == 0) && (srwlCr.tvy == 0)) { throw IMPROPER_OPTICAL_COMPONENT_ORIENT; }
+		if((srwlCr.tvx == 0) && (srwlCr.tvy == 0)) throw IMPROPER_OPTICAL_COMPONENT_ORIENT;
 
 		//TVector3d v_tv(srwlCr.tvx, srwlCr.tvy, 0); /* horizontal, vertical  and vertical coordinates of central tangential vector [m] in the frame of incident beam */
 		//v_tv.z = (-v_nv.x*v_tv.x - v_nv.y*v_tv.y) / v_nv.z;
@@ -128,6 +128,14 @@ public:
 		//sv[2] = nv[0] * tv[1] - nv[1] * tv[0];
 		double sv[] = { nv[1] * tv[2] - nv[2] * tv[1], nv[2] * tv[0] - nv[0] * tv[2], nv[0] * tv[1] - nv[1] * tv[0] };
 		m_sv.x = sv[0]; m_sv.y = sv[1]; m_sv.z = sv[2]; 
+
+		m_uc = srwlCr.uc; //OC05092016
+		if((m_uc < 1) || (m_uc > 2)) throw IMPROPER_OPTICAL_COMPONENT_MIRROR_USE_CASE;
+
+		// Input #7: Whether to calculate the transmitted beam as well as the diffracted 
+		// beam. itrans = 0 for NO, itrans = 1 for YES. 
+		m_itrans = 0; //OC: make it input variable
+		if(m_uc == 2) m_itrans = 1; //OC05092016
 
 		// RXtLab: 3x3 orthogonal matrix that converts components of a 3x1 vector 
 		// in crystal coordinates to components in lab coordinates. 
@@ -194,6 +202,10 @@ public:
 		m_PolTrn[0][1] = e2X[0] * m_sg0X[0] + e2X[1] * m_sg0X[1] + e2X[2] * m_sg0X[2];
 		m_PolTrn[1][0] = e1X[0] * pi0X[0] + e1X[1] * pi0X[1] + e1X[2] * pi0X[2];
 		m_PolTrn[1][1] = e2X[0] * pi0X[0] + e2X[1] * pi0X[1] + e2X[2] * pi0X[2];
+
+		double invDetPolTrn = 1./(m_PolTrn[0][0]*m_PolTrn[1][1] - m_PolTrn[1][0]*m_PolTrn[0][1]); //OC06092016
+		m_InvPolTrn[0][0] = invDetPolTrn*m_PolTrn[1][1]; m_InvPolTrn[0][1] = -invDetPolTrn*m_PolTrn[0][1];
+		m_InvPolTrn[1][0] = -invDetPolTrn*m_PolTrn[1][0]; m_InvPolTrn[1][1] = invDetPolTrn*m_PolTrn[0][0];
 
 		// Calculate polarization vectors in the crystal frame for the diffracted 
 		// beam, ignoring the dependence on (kx,ky):
@@ -503,16 +515,19 @@ public:
 		return 0;
 	}
 
-	int CorrectAngMesh(srTSRWRadStructAccessData* pRad, srTOptCrystMeshTrf* pMeshTrf)
+	int CorrectAngMesh(srTSRWRadStructAccessData* pRad, srTOptCrystMeshTrf* pMeshTrf, double*& ar_xStartValuesInSlicesE, double*& ar_zStartValuesInSlicesE)
 	{//Check and, if necessary, apply corrections to the angular mesh to take into account eventual anamorphic magnification ("stretching", "rotation") occurring at asymmetric reflections
 	 //Should be used before making FFT to Coordinate representation
+		ar_xStartValuesInSlicesE = 0;
+		ar_zStartValuesInSlicesE = 0;
+
 		if((pRad == 0) || (pMeshTrf == 0)) return 0;
 
 		if(pRad->ne == 1)
 		{
 			if(pMeshTrf->crossTermsAreLarge)
 			{//do interpolation (flip is not required)
-
+				//ddddddddddddddddddddddddddddddd
 			}
 			else
 			{//simply change scale
@@ -553,7 +568,117 @@ public:
 		}
 		else
 		{//In the case of multiple photon energies, each const-energy "slice" has to be brought to the "average" mesh by interpolation(?)
+			//OC151014
 
+			srTOptCrystMeshTrf *tMeshTrf = pMeshTrf + 1;
+			bool crossTermsAreLargeTot = pMeshTrf->crossTermsAreLarge;
+			bool flipOverXtot = (pMeshTrf->xMeshTrfIsReq) && (pMeshTrf->xStep < 0);
+			bool flipOverZtot = (pMeshTrf->zMeshTrfIsReq) && (pMeshTrf->zStep < 0);
+
+			const double relTolArg = 0.05; //0.01; //To steer
+
+			//double xStartAvg = 0, xStepAvg = 0;
+			//double zStartAvg = 0, zStepAvg = 0;
+			bool xMeshTrfIsReqTot = pMeshTrf->xMeshTrfIsReq;
+			bool zMeshTrfIsReqTot = pMeshTrf->zMeshTrfIsReq;
+			bool xMeshTrfIsReqHolds = true, zMeshTrfIsReqHolds = true;
+			bool xStartIsAvg = true, xStepIsAvg = true;
+			bool zStartIsAvg = true, zStepIsAvg = true;
+
+			for(long ie = 0; ie < pRad->ne; ie++)
+			{
+				crossTermsAreLargeTot |= tMeshTrf->crossTermsAreLarge;
+
+				bool flipOverX = (tMeshTrf->xMeshTrfIsReq) && (tMeshTrf->xStep < 0);
+				bool flipOverZ = (tMeshTrf->zMeshTrfIsReq) && (tMeshTrf->zStep < 0);
+				flipOverXtot &= flipOverX;
+				flipOverZtot &= flipOverZ;
+
+				if(pMeshTrf->xMeshTrfIsReq != tMeshTrf->xMeshTrfIsReq) xMeshTrfIsReqHolds = true;
+				if(pMeshTrf->zMeshTrfIsReq != tMeshTrf->zMeshTrfIsReq) zMeshTrfIsReqHolds = true;
+
+				double inv_iep1 = 1./(ie + 1);
+				//xStartAvg = (xStartAvg*ie + tMeshTrf->xStart)*inv_iep1;
+				//xStepAvg = (xStepAvg*ie + tMeshTrf->xStep)*inv_iep1;
+				//zStartAvg = (zStartAvg*ie + tMeshTrf->zStart)*inv_iep1;
+				//zStepAvg = (zStepAvg*ie + tMeshTrf->zStep)*inv_iep1;
+
+				xStartIsAvg &= (::fabs(pMeshTrf->xStart - tMeshTrf->xStart) <= ::fabs(pMeshTrf->xStart)*relTolArg);
+				xStepIsAvg &= (::fabs(pMeshTrf->xStep - tMeshTrf->xStep) <= ::fabs(pMeshTrf->xStep)*relTolArg);
+				zStartIsAvg &= (::fabs(pMeshTrf->zStart - tMeshTrf->zStart) <= ::fabs(pMeshTrf->zStart)*relTolArg);
+				zStepIsAvg &= (::fabs(pMeshTrf->zStep - tMeshTrf->zStep) <= ::fabs(pMeshTrf->zStep)*relTolArg);
+
+				tMeshTrf++;
+			}
+
+			//bool xStartIsAvg = (::fabs(pMeshTrf->xStart - xStartAvg) <= ::fabs(pMeshTrf->xStart)*relTolArg);
+			//bool xStepIsAvg = (::fabs(pMeshTrf->xStep - xStepAvg) <= ::fabs(pMeshTrf->xStep)*relTolArg);
+			//bool zStartIsAvg = (::fabs(pMeshTrf->zStart - zStartAvg) <= ::fabs(pMeshTrf->zStart)*relTolArg);
+			//bool zStepIsAvg = (::fabs(pMeshTrf->zStep - zStepAvg) <= ::fabs(pMeshTrf->zStep)*relTolArg);
+
+			//if((!crossTermsAreLargeTot) && xStartIsAvg && xStepIsAvg && zStartIsAvg && zStepIsAvg && xMeshTrfIsReqHolds && zMeshTrfIsReqHolds)
+			if((!crossTermsAreLargeTot) && xStepIsAvg && zStepIsAvg && xMeshTrfIsReqHolds && zMeshTrfIsReqHolds)
+			{
+				if(flipOverXtot || flipOverZtot) pRad->FlipFieldData(flipOverXtot, flipOverZtot);
+
+				if(pMeshTrf->xMeshTrfIsReq)
+				{
+					if(flipOverXtot)
+					{
+						double xEndNew = (pMeshTrf->xStart) + (pMeshTrf->xStep)*(pRad->nx - 1);
+						pRad->xStart = xEndNew; pRad->xStep = -(pMeshTrf->xStep);
+					}
+					else
+					{
+						pRad->xStart = pMeshTrf->xStart; pRad->xStep = pMeshTrf->xStep;
+					}
+				}
+				if(pMeshTrf->zMeshTrfIsReq)
+				{
+					if(flipOverZtot)
+					{
+						double zEndNew = (pMeshTrf->zStart) + (pMeshTrf->zStep)*(pRad->nz - 1);
+						pRad->zStart = zEndNew; pRad->zStep = -(pMeshTrf->zStep);
+					}
+					else
+					{
+						pRad->zStart = pMeshTrf->zStart; pRad->zStep = pMeshTrf->zStep;
+					}
+				}
+
+				//These two switches will allow for taking into account variable start values in slices at doing back FFT
+				if((pMeshTrf->xMeshTrfIsReq) && (!xStartIsAvg)) 
+				{
+					ar_xStartValuesInSlicesE = new double[pRad->ne];
+					double *t_ar_xStartValues = ar_xStartValuesInSlicesE;
+					srTOptCrystMeshTrf *tMeshTrf = pMeshTrf + 1;
+					long nx_mi_1 = pRad->nx - 1;
+					for(long ie=0; ie<(pRad->ne); ie++)
+					{
+						if(flipOverXtot) *(t_ar_xStartValues++) = (tMeshTrf->xStart) + (tMeshTrf->xStep)*nx_mi_1;
+						else *(t_ar_xStartValues++) = tMeshTrf->xStart;
+						tMeshTrf++;
+					}
+				}
+				if((pMeshTrf->zMeshTrfIsReq) && (!zStartIsAvg))
+				{
+					ar_zStartValuesInSlicesE = new double[pRad->ne];
+					double *t_ar_zStartValues = ar_zStartValuesInSlicesE;
+					srTOptCrystMeshTrf *tMeshTrf = pMeshTrf + 1;
+					long nz_mi_1 = pRad->nz - 1;
+					for(long ie=0; ie<(pRad->ne); ie++)
+					{
+						if(flipOverZtot) *(t_ar_zStartValues++) = (tMeshTrf->zStart) + (tMeshTrf->zStep)*nz_mi_1;
+						else *(t_ar_zStartValues++) = tMeshTrf->zStart;
+						tMeshTrf++;
+					}
+				}
+			}
+			else
+			{//do interpolation of all slices to the Average mesh (flip is not required)
+				int res = WfrInterpolOnRegGrid(pRad, pMeshTrf);
+				if(res != 0) return res;
+			}
 		}
 		return 0;
 	}
@@ -640,10 +765,11 @@ public:
 		//	pRadAccessData->zStartTr += zShift;
 		//}
 
-		if(result = CorrectAngMesh(pRadAccessData, m_pMeshTrf)) return result;
+		double *ar_xStartInSlicesE=0,  *ar_zStartInSlicesE=0;
+		if(result = CorrectAngMesh(pRadAccessData, m_pMeshTrf, ar_xStartInSlicesE,  ar_zStartInSlicesE)) return result;
 
 		//Switch to Coordinate representation -- make optional?
-		if(result = SetRadRepres(pRadAccessData, 0)) return result;
+		if(result = SetRadRepres(pRadAccessData, 0, ar_xStartInSlicesE, ar_zStartInSlicesE)) return result;
 
 		//pRadAccessData->xStart = xStartOld; pRadAccessData->zStart = zStartOld;
 		//if(pRadAccessData->UseStartTrToShiftAtChangingRepresToCoord)
@@ -653,6 +779,9 @@ public:
 		//}
 
 		pRadAccessData->SetNonZeroWavefrontLimitsToFullRange();
+
+		if(ar_xStartInSlicesE != 0) delete[] ar_xStartInSlicesE;
+		if(ar_zStartInSlicesE != 0) delete[] ar_zStartInSlicesE;
 
 		if(nMesh > 1) delete[] m_pMeshTrf;
 		return 0;
@@ -698,6 +827,9 @@ public:
 		//Eoy = complex<double>(1.,0.); 
 		complex<double> Eox = complex<double>(*(EPtrs.pExRe), *(EPtrs.pExIm));
 		complex<double> Eoy = complex<double>(*(EPtrs.pEzRe), *(EPtrs.pEzIm));
+
+		//OCTEST111014
+		//double testI0 = Eox.real()*Eox.real() + Eox.imag()*Eox.imag() + Eoy.real()*Eoy.real() + Eoy.imag()*Eoy.imag();
 
 		// k0wvAi = incident beam wave vector (kx,ky,kz). 
 		double kzAi = sqrt(k0Ai*k0Ai - kxAi*kxAi - kyAi*kyAi); //OC: possible loss of precision?
@@ -908,15 +1040,49 @@ public:
 		}
 
 		// Calculate diffracted amplitudes in the diffracted beam frame
-		complex<double> Ehx = sgH[0]*EHSPCs + piH[0]*EHSPCp;
-		complex<double> Ehy = sgH[1]*EHSPCs + piH[1]*EHSPCp;
-		complex<double> Ehz = sgH[2]*EHSPCs + piH[2]*EHSPCp; //Longitudinal component not used (?)
+		//complex<double> Ehx = sgH[0]*EHSPCs + piH[0]*EHSPCp;
+		//complex<double> Ehy = sgH[1]*EHSPCs + piH[1]*EHSPCp;
+		//complex<double> Ehz = sgH[2]*EHSPCs + piH[2]*EHSPCp; //Longitudinal component not used (?)
 
 		// Transverse components of the output electric field in the frame of the output beam:
-		*(EPtrs.pExRe) = (float)(asymFact*Ehx.real());
-		*(EPtrs.pExIm) = (float)(asymFact*Ehx.imag());
-		*(EPtrs.pEzRe) = (float)(asymFact*Ehy.real());
-		*(EPtrs.pEzIm) = (float)(asymFact*Ehy.imag());
+		//*(EPtrs.pExRe) = (float)(asymFact*Ehx.real());
+		//*(EPtrs.pExIm) = (float)(asymFact*Ehx.imag());
+		//*(EPtrs.pEzRe) = (float)(asymFact*Ehy.real());
+		//*(EPtrs.pEzIm) = (float)(asymFact*Ehy.imag());
+
+		//OC05092016
+		if(m_uc == 1) //Bragg Reflection
+		{
+			complex<double> Ehx = sgH[0]*EHSPCs + piH[0]*EHSPCp;
+			complex<double> Ehy = sgH[1]*EHSPCs + piH[1]*EHSPCp;
+			complex<double> Ehz = sgH[2]*EHSPCs + piH[2]*EHSPCp; //Longitudinal component not used (?)
+		
+			//Transverse components of the output electric field in the frame of the output beam:
+			*(EPtrs.pExRe) = (float)(asymFact*Ehx.real());
+			*(EPtrs.pExIm) = (float)(asymFact*Ehx.imag());
+			*(EPtrs.pEzRe) = (float)(asymFact*Ehy.real());
+			*(EPtrs.pEzIm) = (float)(asymFact*Ehy.imag());
+		}
+		else if(m_uc == 2) //Bragg Transmission (i.e. Forward Bragg Diffraction (FBD))
+		{
+			//DEBUG
+			//complex<double> DHsgC_p_D0trsC = DHsgC + D0trsC;
+			//complex<double> DHsgCae2_p_D0trsCae2 = DHsgC.real()*DHsgC.real() + DHsgC.imag()*DHsgC.imag() + D0trsC.real()*D0trsC.real() + D0trsC.imag()*D0trsC.imag();
+			//END DEBUG
+
+			complex<double> Etx = m_InvPolTrn[0][0]*E0tSPs + m_InvPolTrn[0][1]*E0tSPp;
+			complex<double> Ety = m_InvPolTrn[1][0]*E0tSPs + m_InvPolTrn[1][1]*E0tSPp;
+		
+			//Transverse components of the output electric field in the frame of the output beam:
+			*(EPtrs.pExRe) = (float)(Etx.real());
+			*(EPtrs.pExIm) = (float)(Etx.imag());
+			*(EPtrs.pEzRe) = (float)(Ety.real());
+			*(EPtrs.pEzIm) = (float)(Ety.imag());
+		}
+
+		//OCTEST111014
+		//double testI1 = (*(EPtrs.pExRe))*(*(EPtrs.pExRe)) + (*(EPtrs.pExIm))*(*(EPtrs.pExIm)) + 
+		//				(*(EPtrs.pEzRe))*(*(EPtrs.pEzRe)) + (*(EPtrs.pEzIm))*(*(EPtrs.pEzIm));
 
 		//complex<double> Etx, Ety, Etz;
 		//if(m_itrans == 1)
@@ -999,6 +1165,30 @@ public:
 		return 0;
 	}
 
+	void CollectArgStartValuesInSlices(srTOptCrystMeshTrf* arMeshTrf, long ne, char h_or_v, double*& arStartValuesInSlicesE)
+	{
+		arStartValuesInSlicesE = 0;
+		if((arMeshTrf == 0) || (ne <= 0)) return;
+
+		arStartValuesInSlicesE = new double[ne];
+		double *t_arStartValuesInSlicesE = arStartValuesInSlicesE;
+		srTOptCrystMeshTrf *t_arMeshTrf = arMeshTrf;
+
+		if((h_or_v == 'h') || (h_or_v == 'H') || (h_or_v == 'x') || (h_or_v == 'X'))
+		{
+			for(long ie=0; ie<ne; ie++) *(t_arStartValuesInSlicesE++) = (t_arMeshTrf++)->xStart;
+		}
+		else if((h_or_v == 'v') || (h_or_v == 'V') || (h_or_v == 'z') || (h_or_v == 'Z'))
+		{
+			for(long ie=0; ie<ne; ie++) *(t_arStartValuesInSlicesE++) = (t_arMeshTrf++)->zStart;
+		}
+		else
+		{
+			for(long ie=0; ie<ne; ie++) *(t_arStartValuesInSlicesE++) = 0.;
+		}
+	}
+
+	int WfrInterpolOnRegGrid(srTSRWRadStructAccessData* pRad, srTOptCrystMeshTrf* pMeshTrf);
 };
 
 //*************************************************************************

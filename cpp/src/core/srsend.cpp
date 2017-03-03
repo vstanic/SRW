@@ -282,16 +282,16 @@ int srTSend::InitTrjOutFormat1(srTTrjDat& TrjDat)
 	int result;
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH_OutBtxData, kMDWaveAccessMode0, &dataOffset)) return result;
-	hStateOutBtxData = MoveLockHandle(wavH_OutBtxData);
+	hStateOutBtxData = 0; //MoveLockHandle(wavH_OutBtxData); //OC180815
 	pOutBtxData = (DOUBLE*)((char*)(*wavH_OutBtxData) + dataOffset);
 	if(result = MDAccessNumericWaveData(wavH_OutXData, kMDWaveAccessMode0, &dataOffset)) return result;
-	hStateOutXData = MoveLockHandle(wavH_OutXData);
+	hStateOutXData = 0; //MoveLockHandle(wavH_OutXData); //OC180815
 	pOutXData = (DOUBLE*)((char*)(*wavH_OutXData) + dataOffset);
 	if(result = MDAccessNumericWaveData(wavH_OutBtzData, kMDWaveAccessMode0, &dataOffset)) return result;
-	hStateOutBtzData = MoveLockHandle(wavH_OutBtzData);
+	hStateOutBtzData = 0; //MoveLockHandle(wavH_OutBtzData); //OC180815
 	pOutBtzData = (DOUBLE*)((char*)(*wavH_OutBtzData) + dataOffset);
 	if(result = MDAccessNumericWaveData(wavH_OutZData, kMDWaveAccessMode0, &dataOffset)) return result;
-	hStateOutZData = MoveLockHandle(wavH_OutZData);
+	hStateOutZData = 0; //MoveLockHandle(wavH_OutZData); //OC180815
 	pOutZData = (DOUBLE*)((char*)(*wavH_OutZData) + dataOffset);
 
 	return 0;
@@ -339,7 +339,7 @@ int srTSend::InitRadDistrOutFormat1(srTWfrSmp& DistrInfoDat)
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH_OutExData, kMDWaveAccessMode0, &dataOffset)) return result;
 
-	hStateOutExData = MoveLockHandle(wavH_OutExData);
+	hStateOutExData = 0; //MoveLockHandle(wavH_OutExData); //OC180815
 	pOutExData = (float*)((char*)(*wavH_OutExData) + dataOffset);
 
 	if(wavH_OutEzData == NIL) return NOWAV;
@@ -358,7 +358,7 @@ int srTSend::InitRadDistrOutFormat1(srTWfrSmp& DistrInfoDat)
 
 	if(result = MDAccessNumericWaveData(wavH_OutEzData, kMDWaveAccessMode0, &dataOffset)) return result;
 
-	hStateOutEzData = MoveLockHandle(wavH_OutEzData);
+	hStateOutEzData = 0; //MoveLockHandle(wavH_OutEzData); //OC180815
 	pOutEzData = (float*)((char*)(*wavH_OutEzData) + dataOffset);
 	tOutExData = pOutExData; tOutEzData = pOutEzData;
 
@@ -407,14 +407,14 @@ int srTSend::InitRadDistrOutFormat2(srTWfrSmp& DistrInfoDat)
 
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH_OutExData, kMDWaveAccessMode0, &dataOffset)) return result;
-	hStateOutExData = MoveLockHandle(wavH_OutExData);
+	hStateOutExData = 0; //MoveLockHandle(wavH_OutExData); //OC180815
 	pOutExData = (float*)((char*)(*wavH_OutExData) + dataOffset);
 
 	strcpy(waveName, "FocusedFluxDensZ");
 	//if(result = MDMakeWave(&wavH_OutEzData, waveName, NIL, dimensionSizes, NT_FP32, 1)) return result;
 	if(result = MDMakeWave(&wavH_OutEzData, waveName, NIL, dimensionSizes, NT_FP32, 1)) return FAILED_TO_CREATE_WAVE;
 	if(result = MDAccessNumericWaveData(wavH_OutEzData, kMDWaveAccessMode0, &dataOffset)) return result;
-	hStateOutEzData = MoveLockHandle(wavH_OutEzData);
+	hStateOutEzData =  0; //MoveLockHandle(wavH_OutEzData); //OC180815
 	pOutEzData = (float*)((char*)(*wavH_OutEzData) + dataOffset);
 
 	tOutExData = pOutExData; tOutEzData = pOutEzData;
@@ -612,7 +612,7 @@ int srTSend::OutRadDistrFormat1(srTRadInt& RadInt)
 
 		long dataOffset;
 		if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-		int hState = MoveLockHandle(wavH);
+		int hState = 0; //MoveLockHandle(wavH); //OC180815
 		char* dataStartPtr = (char*)(*wavH) + dataOffset;
 		DOUBLE* dp0 = (DOUBLE*)dataStartPtr;
 
@@ -634,7 +634,7 @@ int srTSend::OutRadDistrFormat1(srTRadInt& RadInt)
 		if(numRows < 2) return BAD_FIELD_FOURIER_WAVE_FORMAT;
 
 		if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-		hState = MoveLockHandle(wavH);
+		hState = 0; //MoveLockHandle(wavH); //OC180815
 		dataStartPtr = (char*)(*wavH) + dataOffset;
 		dp0 = (DOUBLE*)dataStartPtr;
 
@@ -665,12 +665,14 @@ int srTSend::OutRadDistrFormat1(srTRadInt& RadInt)
 		if((numRowsInWave != numRows) || (numColumnsInWave != numColumns) || (numLayersInWave != numLayers))
 			return BAD_RAD_OUTPUT_WAVE_DIMENSIONS;
 
-		long pointsPerColumn = numRows*2;
-		long pointsPerLayer = pointsPerColumn*numColumns;
+		//long pointsPerColumn = numRows*2;
+		//long pointsPerLayer = pointsPerColumn*numColumns;
+		long long pointsPerColumn = numRows*2;
+		long long pointsPerLayer = pointsPerColumn*numColumns;
 
 		long dataOffset;
 		if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-		int hState = MoveLockHandle(wavH);
+		int hState = 0; //MoveLockHandle(wavH); //OC180815
 		char* dataStartPtr = (char*)(*wavH) + dataOffset;
 
 		float *fp0 = (float*)dataStartPtr;
@@ -709,7 +711,7 @@ int srTSend::OutRadDistrFormat1(srTRadInt& RadInt)
 		return BAD_RAD_OUTPUT_WAVE_DIMENSIONS;
 
 		if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-		hState = MoveLockHandle(wavH);
+		hState = 0; //MoveLockHandle(wavH); //OC180815
 		dataStartPtr = (char*)(*wavH) + dataOffset;
 
 		fp0 = (float*)dataStartPtr;
@@ -1043,7 +1045,7 @@ int srTSend::GetTotalFieldDataFormat1(srTMagFieldAccessData& MagFieldAccessData,
 
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) { delete[] BxInData; return result;}
-	int hState = MoveLockHandle(wavH);
+	int hState = 0; //MoveLockHandle(wavH); //OC180815
 	char* dataStartPtr = (char*)(*wavH) + dataOffset;
 	DOUBLE* dp0 = (DOUBLE*)dataStartPtr;
 
@@ -1090,7 +1092,7 @@ int srTSend::GetTotalFieldDataFormat1(srTMagFieldAccessData& MagFieldAccessData,
 	}
 
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-	hState = MoveLockHandle(wavH);
+	hState = 0; //MoveLockHandle(wavH); //OC180815
 	dataStartPtr = (char*)(*wavH) + dataOffset;
 	dp0 = (DOUBLE*)dataStartPtr;
 
@@ -1265,7 +1267,7 @@ int srTSend::GetPeriodicFieldDataFormat1(srTMagFieldPeriodic& MagPer, waveHndl I
 
 		long dataOffset;
 		if(result = MDAccessNumericWaveData(wHarm, kMDWaveAccessMode0, &dataOffset)) return result;
-		int hState = MoveLockHandle(wHarm);
+		int hState = 0; //MoveLockHandle(wHarm); //OC180815
 		char* dataStartPtr = (char*)(*wHarm) + dataOffset;
 		DOUBLE* dp = (DOUBLE*)dataStartPtr;
 
@@ -1515,7 +1517,7 @@ int srTSend::GetTotalElectronBeamDataFormat2(srTTrjDat& TrjDat)
 
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-	int hState = MoveLockHandle(wavH);
+	int hState = 0; //MoveLockHandle(wavH);
 	char* dataStartPtr = (char*)(*wavH) + dataOffset;
 	DOUBLE* dp = (DOUBLE*)dataStartPtr;
 
@@ -1601,7 +1603,7 @@ int srTSend::GetTotalElectronDistribDataFormat1(srTEbmDat& EbmDat)
 	if(result = MDAccessNumericWaveData(EbmDat.wElecDistr, kMDWaveAccessMode0, &dataOffsetElecDistr)) return result;
 	char* dataStartPtr = (char*)(*(EbmDat.wElecDistr)) + dataOffsetElecDistr;
 	EbmDat.pElecDistr = (float*)dataStartPtr;
-	EbmDat.hStateElecDistr = MoveLockHandle(EbmDat.wElecDistr);
+	EbmDat.hStateElecDistr = 0; //MoveLockHandle(EbmDat.wElecDistr);
 
 	return 0;
 
@@ -1662,7 +1664,7 @@ int srTSend::GetTotalElectronBeamDataFormat3_FromIgorWave(srTEbmDat& EbmDat, wav
 
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-	int hState = MoveLockHandle(wavH);
+	int hState = 0; //MoveLockHandle(wavH);
 	char* dataStartPtr = (char*)(*wavH) + dataOffset;
 	DOUBLE* dp0 = (DOUBLE*)dataStartPtr;
 	DOUBLE* dp = dp0;
@@ -1841,7 +1843,7 @@ int srTSend::GetTotalElectronBeamDataFormat3_FromIgorWave(srTEbmDat& EbmDat, wav
 				if(result = MDAccessNumericWaveData(EbmDat.wElecDistr, kMDWaveAccessMode0, &dataOffsetElecDistr)) return result;
 				char* dataStartPtr = (char*)(*(EbmDat.wElecDistr)) + dataOffsetElecDistr;
 				EbmDat.pElecDistr = (float*)dataStartPtr;
-				EbmDat.hStateElecDistr = MoveLockHandle(EbmDat.wElecDistr);
+				EbmDat.hStateElecDistr = 0; //MoveLockHandle(EbmDat.wElecDistr);
 			}
 		}
 	}
@@ -1917,7 +1919,7 @@ int srTSend::GetIsotrSrcExtraDataFormat1(srTIsotrSrc& IsotrSrc)
 
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-	int hState = MoveLockHandle(wavH);
+	int hState = 0; //MoveLockHandle(wavH);
 	char* dataStartPtr = (char*)(*wavH) + dataOffset;
 	DOUBLE* dp0 = (DOUBLE*)dataStartPtr;
 	DOUBLE* dp = dp0;
@@ -2061,7 +2063,7 @@ int srTSend::GetTrajectoryComponentDataFormat1(srTWaveAccessDataD1D& TrjCmpn)
 
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH_AuxTrajectory, kMDWaveAccessMode0, &dataOffset)) return result;
-	TrjCmpn.hState = MoveLockHandle(wavH_AuxTrajectory);
+	TrjCmpn.hState = 0; //MoveLockHandle(wavH_AuxTrajectory);
 	char* dataStartPtr = (char*)(*wavH_AuxTrajectory) + dataOffset;
 	TrjCmpn.pData = (DOUBLE*)dataStartPtr;
 
@@ -2277,7 +2279,7 @@ int srTSend::GetTotalObservationDataFormat1(srTWfrSmp& DistrInfoDat)
 
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-	int hState = MoveLockHandle(wavH);
+	int hState = 0; //MoveLockHandle(wavH);
 	char* dataStartPtr = (char*)(*wavH) + dataOffset;
 	DOUBLE* dp0 = (DOUBLE*)dataStartPtr;
 
@@ -2490,7 +2492,7 @@ int srTSend::GetTotalObservationDataFormat3(srTWfrSmp& DistrInfoDat)
 
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-	int hState = MoveLockHandle(wavH);
+	int hState = 0; //MoveLockHandle(wavH);
 	char* dataStartPtr = (char*)(*wavH) + dataOffset;
 	DOUBLE* dp0 = (DOUBLE*)dataStartPtr;
 	DOUBLE* dp00 = dp0;
@@ -2645,7 +2647,7 @@ int srTSend::GetTotalObservationDataFormat2(srTWfrSmp& DistrInfoDat)
 
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-	int hState = MoveLockHandle(wavH);
+	int hState = 0; //MoveLockHandle(wavH);
 	char* dataStartPtr = (char*)(*wavH) + dataOffset;
 	DOUBLE* dp0 = (DOUBLE*)dataStartPtr;
 
@@ -2902,7 +2904,7 @@ int srTSend::GetTotalRadIntegrationParamDataFormat1(srTRadInt& RadInt)
 
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-	int hState = MoveLockHandle(wavH);
+	int hState = 0; //MoveLockHandle(wavH);
 	char* dataStartPtr = (char*)(*wavH) + dataOffset;
 	DOUBLE* dp0 = (DOUBLE*)dataStartPtr;
 
@@ -3002,7 +3004,7 @@ int srTSend::GetPropagRadStokesMultiElecDataFormat1(double* pPrecPar)
 	int result;
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-	int hState = MoveLockHandle(wavH);
+	int hState = 0; //MoveLockHandle(wavH);
 	char* dataStartPtr = (char*)(*wavH) + dataOffset;
 	DOUBLE* dp0 = (DOUBLE*)dataStartPtr;
 	DOUBLE* dp = dp0;
@@ -3035,7 +3037,7 @@ int srTSend::GetWfrEmitPropagPrec(double* pPrecPar)
 	int result;
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-	int hState = MoveLockHandle(wavH);
+	int hState = 0; //MoveLockHandle(wavH);
 	char* dataStartPtr = (char*)(*wavH) + dataOffset;
 	DOUBLE* dp0 = (DOUBLE*)dataStartPtr;
 	DOUBLE* dp = dp0;
@@ -3071,7 +3073,7 @@ int srTSend::GetRadIntPeriodicParamDataFormat1(srTRadIntPerStoPrec& IntPerPrec)
 	int result;
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-	int hState = MoveLockHandle(wavH);
+	int hState = 0; //MoveLockHandle(wavH);
 	char* dataStartPtr = (char*)(*wavH) + dataOffset;
 	DOUBLE* dp0 = (DOUBLE*)dataStartPtr;
 	DOUBLE* dp = dp0;
@@ -3108,7 +3110,7 @@ int srTSend::GetRadIntWigglerParamDataFormat1(srTRadIntWigPrec& IntWigPrec)
 	int result;
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-	int hState = MoveLockHandle(wavH);
+	int hState = 0; //MoveLockHandle(wavH);
 	char* dataStartPtr = (char*)(*wavH) + dataOffset;
 	DOUBLE* dp = (DOUBLE*)dataStartPtr;
 	IntWigPrec.PrecFact = *(dp++);
@@ -3141,7 +3143,7 @@ int srTSend::GetRadIntConstParamDataFormat1(srTRadIntConstPrec& IntConstPrec)
 	int result;
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-	int hState = MoveLockHandle(wavH);
+	int hState = 0; //MoveLockHandle(wavH);
 	char* dataStartPtr = (char*)(*wavH) + dataOffset;
 	DOUBLE* dp = (DOUBLE*)dataStartPtr;
 	IntConstPrec.PrecFact = *dp;
@@ -3172,7 +3174,7 @@ int srTSend::GetRadIntPowDensParamDataFormat1(srTRadIntPowDenPrec& PowDenPrec)
 	int result;
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-	int hState = MoveLockHandle(wavH);
+	int hState = 0; //MoveLockHandle(wavH);
 	char* dataStartPtr = (char*)(*wavH) + dataOffset;
 	DOUBLE* dp = (DOUBLE*)dataStartPtr;
 
@@ -3217,7 +3219,7 @@ int srTSend::GetTotalOpticalElemDataFormat1(void* OpticsHndlPtr)
 
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-	int hState = MoveLockHandle(wavH);
+	int hState = 0; //MoveLockHandle(wavH);
 	char* dataStartPtr = (char*)(*wavH) + dataOffset;
 	DOUBLE* dp0 = (DOUBLE*)dataStartPtr;
 
@@ -3308,7 +3310,7 @@ int srTSend::OutOpticsIncRadDistrFormat1(double* DataPtr, int lenData, double xS
 
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-	int hState = MoveLockHandle(wavH);
+	int hState = 0; //MoveLockHandle(wavH);
 	char* dataStartPtr = (char*)(*wavH) + dataOffset;
 	DOUBLE* dp0 = (DOUBLE*)dataStartPtr;
 
@@ -3362,7 +3364,7 @@ int srTSend::GetSRWRadStructAccessData(srTSRWRadStructAccessData* pSRWRadStructA
 	if(wRadX == NIL) return IMPROPER_RADIATION_STRUCTURE;
 	pSRWRadStructAccessData->wRadX = wRadX;
 	if(result = MDAccessNumericWaveData(wRadX, kMDWaveAccessMode0, &dataOffset)) return result;
-	pSRWRadStructAccessData->hStateRadX = MoveLockHandle(wRadX);
+	pSRWRadStructAccessData->hStateRadX = 0; //MoveLockHandle(wRadX);
 	char* dataStartPtr = (char*)(*wRadX) + dataOffset;
 	pSRWRadStructAccessData->pBaseRadX = (float*)dataStartPtr;
 	if(result = MDGetWaveDimensions(wRadX, &numDimensions, dimensionSizes)) return result;
@@ -3388,7 +3390,7 @@ int srTSend::GetSRWRadStructAccessData(srTSRWRadStructAccessData* pSRWRadStructA
 	if(wRadZ == NIL) return IMPROPER_RADIATION_STRUCTURE;
 	pSRWRadStructAccessData->wRadZ = wRadZ;
 	if(result = MDAccessNumericWaveData(wRadZ, kMDWaveAccessMode0, &dataOffset)) return result;
-	pSRWRadStructAccessData->hStateRadZ = MoveLockHandle(wRadZ);
+	pSRWRadStructAccessData->hStateRadZ = 0; //MoveLockHandle(wRadZ);
 	dataStartPtr = (char*)(*wRadZ) + dataOffset;
 	pSRWRadStructAccessData->pBaseRadZ = (float*)dataStartPtr;
 	if(result = MDGetWaveDimensions(wRadZ, &numDimensions, dimensionSizes)) return result;
@@ -3465,13 +3467,13 @@ int srTSend::GetSRWRadStructAccessData(srTSRWRadStructAccessData* pSRWRadStructA
 	if(ElecBeamOrTrjWaveType == TEXT_WAVE_TYPE) // Assume Trajectory, later modify if necessary
 	{
 		pSRWRadStructAccessData->wTrj = wElecBeamOrTrj;
-		pSRWRadStructAccessData->hStateTrj = MoveLockHandle(wElecBeamOrTrj);
+		pSRWRadStructAccessData->hStateTrj = 0; //MoveLockHandle(wElecBeamOrTrj);
 	}
 	else // Assume Trajectory, later modify if necessary
 	{
 		pSRWRadStructAccessData->wElecBeam = wElecBeamOrTrj;
 		if(result = MDAccessNumericWaveData(pSRWRadStructAccessData->wElecBeam, kMDWaveAccessMode0, &dataOffset)) return result;
-		pSRWRadStructAccessData->hStateElecBeam = MoveLockHandle(pSRWRadStructAccessData->wElecBeam);
+		pSRWRadStructAccessData->hStateElecBeam = 0; //MoveLockHandle(pSRWRadStructAccessData->wElecBeam);
 		dataStartPtr = (char*)(*(pSRWRadStructAccessData->wElecBeam)) + dataOffset;
 		pSRWRadStructAccessData->pElecBeam = (DOUBLE*)dataStartPtr;
 	}
@@ -3486,7 +3488,7 @@ int srTSend::GetSRWRadStructAccessData(srTSRWRadStructAccessData* pSRWRadStructA
 	if(w4x4PropMatr == NIL) return IMPROPER_RADIATION_STRUCTURE;
 	pSRWRadStructAccessData->w4x4PropMatr = w4x4PropMatr;
 	if(result = MDAccessNumericWaveData(w4x4PropMatr, kMDWaveAccessMode0, &dataOffset)) return result;
-	pSRWRadStructAccessData->hState4x4PropMatr = MoveLockHandle(w4x4PropMatr);
+	pSRWRadStructAccessData->hState4x4PropMatr = 0; //MoveLockHandle(w4x4PropMatr);
 	dataStartPtr = (char*)(*w4x4PropMatr) + dataOffset;
 	pSRWRadStructAccessData->p4x4PropMatr = (DOUBLE*)dataStartPtr;
 	DisposeHandle(textH);
@@ -3500,7 +3502,7 @@ int srTSend::GetSRWRadStructAccessData(srTSRWRadStructAccessData* pSRWRadStructA
 	if(wRadMomX == NIL) return IMPROPER_RADIATION_STRUCTURE;
 	pSRWRadStructAccessData->wMomX = wRadMomX;
 	if(result = MDAccessNumericWaveData(wRadMomX, kMDWaveAccessMode0, &dataOffset)) return result;
-	pSRWRadStructAccessData->hStateMomX = MoveLockHandle(wRadMomX);
+	pSRWRadStructAccessData->hStateMomX = 0; //MoveLockHandle(wRadMomX);
 	dataStartPtr = (char*)(*wRadMomX) + dataOffset;
 	//pSRWRadStructAccessData->pMomX = (float*)dataStartPtr;
 	pSRWRadStructAccessData->pMomX = (DOUBLE*)dataStartPtr; //130311
@@ -3515,7 +3517,7 @@ int srTSend::GetSRWRadStructAccessData(srTSRWRadStructAccessData* pSRWRadStructA
 	if(wRadMomZ == NIL) return IMPROPER_RADIATION_STRUCTURE;
 	pSRWRadStructAccessData->wMomZ = wRadMomZ;
 	if(result = MDAccessNumericWaveData(wRadMomZ, kMDWaveAccessMode0, &dataOffset)) return result;
-	pSRWRadStructAccessData->hStateMomZ = MoveLockHandle(wRadMomZ);
+	pSRWRadStructAccessData->hStateMomZ = 0; //MoveLockHandle(wRadMomZ);
 	dataStartPtr = (char*)(*wRadMomZ) + dataOffset;
 	//pSRWRadStructAccessData->pMomZ = (float*)dataStartPtr;
 	pSRWRadStructAccessData->pMomZ = (DOUBLE*)dataStartPtr; //130311
@@ -3530,7 +3532,7 @@ int srTSend::GetSRWRadStructAccessData(srTSRWRadStructAccessData* pSRWRadStructA
 	if(wWfrAuxData == NIL) return IMPROPER_RADIATION_STRUCTURE;
 	pSRWRadStructAccessData->wWfrAuxData = wWfrAuxData;
 	if(result = MDAccessNumericWaveData(wWfrAuxData, kMDWaveAccessMode0, &dataOffset)) return result;
-	pSRWRadStructAccessData->hStateWfrAuxData = MoveLockHandle(wWfrAuxData);
+	pSRWRadStructAccessData->hStateWfrAuxData = 0; //MoveLockHandle(wWfrAuxData);
 	dataStartPtr = (char*)(*wWfrAuxData) + dataOffset;
 	pSRWRadStructAccessData->pWfrAuxData = (DOUBLE*)dataStartPtr;
 	DisposeHandle(textH);
@@ -3645,7 +3647,7 @@ int srTSend::GetSRWRadStructAndExtractData(srTIgorRadExtractInputStruct* pIgorRa
 	if(numDimensions != 1) return NEEDS_1D_WAVE;
 
 	if(result = MDAccessNumericWaveData(pIgorRadExtractInputStruct->wExtractParam, kMDWaveAccessMode0, &dataOffset)) return result;
-	int hStateExtractParam = MoveLockHandle(pIgorRadExtractInputStruct->wExtractParam);
+	int hStateExtractParam = 0; //MoveLockHandle(pIgorRadExtractInputStruct->wExtractParam);
 	char* dataStartPtr = (char*)(*(pIgorRadExtractInputStruct->wExtractParam)) + dataOffset;
 	DOUBLE* pD0 = (DOUBLE*)(dataStartPtr);
 	DOUBLE* pD = pD0;
@@ -3666,7 +3668,7 @@ int srTSend::GetSRWRadStructAndExtractData(srTIgorRadExtractInputStruct* pIgorRa
 
 	if(result = MDAccessNumericWaveData(pIgorRadExtractInputStruct->wExtractedData, kMDWaveAccessMode0, &dataOffset)) return result;
 	pRadExtract->wExtractedData = pIgorRadExtractInputStruct->wExtractedData;
-	pRadExtract->hStateExtractedData = MoveLockHandle(pIgorRadExtractInputStruct->wExtractedData);
+	pRadExtract->hStateExtractedData = 0; //MoveLockHandle(pIgorRadExtractInputStruct->wExtractedData);
 	dataStartPtr = (char*)(*(pIgorRadExtractInputStruct->wExtractedData)) + dataOffset;
 	if(pRadExtract->Int_or_Phase != 2)
 	{
@@ -3741,7 +3743,7 @@ int srTSend::GetWaveAccessData(srTHandleOfOneWaveStruct* pHandleOfOneWaveStruct,
 
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-	pWaveAccessData->hState = MoveLockHandle(wavH);
+	pWaveAccessData->hState = 0; //MoveLockHandle(wavH);
 	pWaveAccessData->pWaveData = (char*)(*wavH) + dataOffset;
 
 	return 0;
@@ -3854,7 +3856,7 @@ int srTSend::CreateNewRadStruct(srTSRWRadStructAccessData& RadData, srTSRWRadStr
 		if(result = MDSetWaveScaling(RadData.wRadX, 2, &zStep, &zStart)) return result;
 
 		if(result = MDAccessNumericWaveData(RadData.wRadX, kMDWaveAccessMode0, &dataOffset)) return result;
-		RadData.hStateRadX = MoveLockHandle(RadData.wRadX);
+		RadData.hStateRadX = 0; //MoveLockHandle(RadData.wRadX);
 		RadData.pBaseRadX = (float*)((char*)(*(RadData.wRadX)) + dataOffset);
 	}
 	if(result = UpdateTextPositionInSRWRad(&RadData, 0, Names.NameRadX)) return result;
@@ -3879,7 +3881,7 @@ int srTSend::CreateNewRadStruct(srTSRWRadStructAccessData& RadData, srTSRWRadStr
 		if(result = MDSetWaveScaling(RadData.wRadZ, 2, &zStep, &zStart)) return result;
 
 		if(result = MDAccessNumericWaveData(RadData.wRadZ, kMDWaveAccessMode0, &dataOffset)) return result;
-		RadData.hStateRadZ = MoveLockHandle(RadData.wRadZ);
+		RadData.hStateRadZ = 0; //MoveLockHandle(RadData.wRadZ);
 		RadData.pBaseRadZ = (float*)((char*)(*(RadData.wRadZ)) + dataOffset);
 	}
 	if(result = UpdateTextPositionInSRWRad(&RadData, 1, Names.NameRadZ)) return result;
@@ -4058,7 +4060,7 @@ int srTSend::ModifyRadNeNxNz(srTSRWRadStructAccessData& NewRadStructAccessData, 
 		if(result = MDSetWaveScaling(NewRadStructAccessData.wRadX, 2, &StepZ, &StartZ)) return result;
 
 		if(result = MDAccessNumericWaveData(NewRadStructAccessData.wRadX, kMDWaveAccessMode0, &dataOffset)) return result;
-		NewRadStructAccessData.hStateRadX = MoveLockHandle(NewRadStructAccessData.wRadX);
+		NewRadStructAccessData.hStateRadX = 0; //MoveLockHandle(NewRadStructAccessData.wRadX);
 		NewRadStructAccessData.pBaseRadX = (float*)((char*)(*(NewRadStructAccessData.wRadX)) + dataOffset);
 	}
 	if(TreatPolCompZ)
@@ -4080,7 +4082,7 @@ int srTSend::ModifyRadNeNxNz(srTSRWRadStructAccessData& NewRadStructAccessData, 
 		if(result = MDSetWaveScaling(NewRadStructAccessData.wRadZ, 2, &StepZ, &StartZ)) return result;
 
 		if(result = MDAccessNumericWaveData(NewRadStructAccessData.wRadZ, kMDWaveAccessMode0, &dataOffset)) return result;
-		NewRadStructAccessData.hStateRadZ = MoveLockHandle(NewRadStructAccessData.wRadZ);
+		NewRadStructAccessData.hStateRadZ = 0; //MoveLockHandle(NewRadStructAccessData.wRadZ);
 		NewRadStructAccessData.pBaseRadZ = (float*)((char*)(*(NewRadStructAccessData.wRadZ)) + dataOffset);
 	}
 
@@ -4200,7 +4202,7 @@ int srTSend::ModifyRadNeNxNz(srTSRWRadStructAccessData& NewRadStructAccessData, 
 		dimSizesMom[1] = NewRadStructAccessData.ne;
 		if(result = MDMakeWave(&(NewRadStructAccessData.wMomX), AuxRadWaveName, NIL, dimSizesMom, NT_FP32, 1)) return FAILED_TO_CREATE_WAVE;
 		if(result = MDAccessNumericWaveData(NewRadStructAccessData.wMomX, kMDWaveAccessMode0, &dataOffset)) return result;
-		NewRadStructAccessData.hStateMomX = MoveLockHandle(NewRadStructAccessData.wMomX);
+		NewRadStructAccessData.hStateMomX = 0; //MoveLockHandle(NewRadStructAccessData.wMomX);
 		//NewRadStructAccessData.pMomX = (float*)((char*)(*(NewRadStructAccessData.wMomX)) + dataOffset);
 		NewRadStructAccessData.pMomX = (double*)((char*)(*(NewRadStructAccessData.wMomX)) + dataOffset); //OC130311
 	}
@@ -4212,7 +4214,7 @@ int srTSend::ModifyRadNeNxNz(srTSRWRadStructAccessData& NewRadStructAccessData, 
 		dimSizesMom[1] = NewRadStructAccessData.ne;
 		if(result = MDMakeWave(&(NewRadStructAccessData.wMomZ), AuxRadWaveName, NIL, dimSizesMom, NT_FP32, 1)) return FAILED_TO_CREATE_WAVE;
 		if(result = MDAccessNumericWaveData(NewRadStructAccessData.wMomZ, kMDWaveAccessMode0, &dataOffset)) return result;
-		NewRadStructAccessData.hStateMomZ = MoveLockHandle(NewRadStructAccessData.wMomZ);
+		NewRadStructAccessData.hStateMomZ = 0; //MoveLockHandle(NewRadStructAccessData.wMomZ);
 		//NewRadStructAccessData.pMomZ = (float*)((char*)(*(NewRadStructAccessData.wMomZ)) + dataOffset);
 		NewRadStructAccessData.pMomZ = (double*)((char*)(*(NewRadStructAccessData.wMomZ)) + dataOffset); //OC130311
 	}
@@ -4255,7 +4257,7 @@ int srTSend::ModifyStokesNeNxNz(srTStokesStructAccessData& Stokes)
 	if(result = MDSetWaveScaling(Stokes.wSto, 3, &StepZ, &StartZ)) return result;
 
 	if(result = MDAccessNumericWaveData(Stokes.wSto, kMDWaveAccessMode0, &dataOffset)) return result;
-	Stokes.hStateSto = MoveLockHandle(Stokes.wSto);
+	Stokes.hStateSto = 0; //MoveLockHandle(Stokes.wSto);
 
 	char* dataStartPtr = (char*)(*(Stokes.wSto)) + dataOffset;
 	Stokes.pBaseSto = (float*)dataStartPtr;
@@ -4623,7 +4625,7 @@ int srTSend::GetStokesStructAccessData(srTStokesStructAccessData* pStokesAccessD
 
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-	pStokesAccessData->hStateSto = MoveLockHandle(wavH);
+	pStokesAccessData->hStateSto = 0; //MoveLockHandle(wavH);
 
 	char* dataStartPtr = (char*)(*wavH) + dataOffset;
 	pStokesAccessData->pBaseSto = (float*)dataStartPtr;
@@ -4672,7 +4674,7 @@ int srTSend::GetPowDensStructAccessData(srTPowDensStructAccessData* pPowDensStru
 
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-	pPowDensStructAccessData->hStatePowDens = MoveLockHandle(wavH);
+	pPowDensStructAccessData->hStatePowDens = 0; //MoveLockHandle(wavH);
 
 	char* dataStartPtr = (char*)(*wavH) + dataOffset;
 	pPowDensStructAccessData->pBasePowDens = (float*)dataStartPtr;
@@ -4718,7 +4720,7 @@ int srTSend::ChangeObservationData(srTHandleOfOneWaveStruct* pHandleOfOneWaveStr
 
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-	int hState = MoveLockHandle(wavH);
+	int hState = 0; //MoveLockHandle(wavH);
 	char* dataStartPtr = (char*)(*wavH) + dataOffset;
 	DOUBLE* dp = (DOUBLE*)dataStartPtr;
 
@@ -4781,7 +4783,7 @@ int srTSend::GetAuxObsTreatParamFormat1(srTWfrSmp& DistrInfoDat)
 
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-	int hState = MoveLockHandle(wavH);
+	int hState = 0; //MoveLockHandle(wavH);
 	char* dataStartPtr = (char*)(*wavH) + dataOffset;
 	DOUBLE* dp = (DOUBLE*)dataStartPtr;
 
@@ -4890,7 +4892,7 @@ int srTSend::GetSASEPrecDataFormat1(srTPrecSASE& PrecSASE)
 
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-	int hState = MoveLockHandle(wavH);
+	int hState = 0; //MoveLockHandle(wavH);
 	char* dataStartPtr = (char*)(*wavH) + dataOffset;
 	DOUBLE* dp0 = (DOUBLE*)dataStartPtr;
 
@@ -5756,7 +5758,7 @@ int srTSend::MakeWaveAccordingToWaveAccessData(srTWaveAccessData& ShowingWave)
 	{
 		long dataOffset;
 		if(result = MDAccessNumericWaveData(ShowingWave.wHndl, kMDWaveAccessMode0, &dataOffset)) return result;
-		ShowingWave.hState = MoveLockHandle(ShowingWave.wHndl);
+		ShowingWave.hState = 0; //MoveLockHandle(ShowingWave.wHndl);
 		ShowingWave.pWaveData = (char*)(*(ShowingWave.wHndl)) + dataOffset;
 	}
 	return 0;
@@ -5780,7 +5782,7 @@ int srTSend::MakeWaveToShowData(srTWaveAccessData& ShowingWave)
 
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(ShowingWave.wHndl, kMDWaveAccessMode0, &dataOffset)) return result;
-	ShowingWave.hState = MoveLockHandle(ShowingWave.wHndl);
+	ShowingWave.hState = 0; //MoveLockHandle(ShowingWave.wHndl);
 
 	long TotAmOfData = (ShowingWave.DimSizes)[0];
 	for(int jj=1; jj<ShowingWave.AmOfDims; jj++) TotAmOfData *= (ShowingWave.DimSizes)[jj];

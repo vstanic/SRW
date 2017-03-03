@@ -70,6 +70,7 @@ class Backend(object):
         if _graphs_joined:
             #fig = _pl.figure(figsize=(12,5))
             fig = self._pl.figure(figsize=(15,5.3))
+           
             self._plot_2D(data, x_range, y_range, label2D, fig, 131) #showing graphs in one panel
         else: self.uti_plot2d(data, x_range, y_range, label2D)
 
@@ -98,13 +99,15 @@ class Backend(object):
         if _graphs_joined: self._plot_1D(arCutY, y_range, label1V, fig, 133)
         else: self.uti_plot1d(arCutY, y_range, label1V)
 
+        if _graphs_joined: self._pl.tight_layout() #OC081115
+
         return self._maybe_savefig(fig)
 
     #def srw_ascii_plot(fname):
-    def uti_data_file_plot(self, _fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=1):
+    def uti_data_file_plot(self, _fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=1, _traj_report=False, _traj_axis='x'):
         #data, mode, allrange = srw_ascii_load(fname)
         #data, mode, allrange, arLabels, arUnits = _file_load(_fname, _read_labels)
-        data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(_fname, _read_labels)
+        data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(_fname, _read_labels, _traj_report, _traj_axis)
 
         #print(allrange)
         m = self._enum('T','V','H','E','HV','EV','EH','EHV')
@@ -544,7 +547,7 @@ class Backend(object):
                 return True
             except:
                 pass
-        return false
+        return False
 
     class _HideGUIErrorOutput(object):
         """Redirect low level stderr (fd #2) to os.devnull as context manager

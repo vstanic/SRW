@@ -66,6 +66,7 @@ public:
 
 	bool BaseRadWasEmulated;
 	float *pBaseRadX, *pBaseRadZ;
+	float *pBaseRadXaux, *pBaseRadZaux; //OC151115
 	waveHndl wRad, wRadX, wRadZ;
 	int hStateRadX, hStateRadZ;
 	double eStep, eStart, xStep, xStart, zStep, zStart;
@@ -73,6 +74,8 @@ public:
 
 	double xStartTr, zStartTr;
 	bool UseStartTrToShiftAtChangingRepresToCoord;
+	//double tStartTr; //OC091115 //to check!
+	//bool UseStartTrToShiftAtChangingRepresToTime; //OC091115 
 
 	double RobsX, RobsZ; //these values should be treated as distances to waists
 	double RobsXAbsErr, RobsZAbsErr;
@@ -80,6 +83,7 @@ public:
 	double xWfrMin, xWfrMax, zWfrMin, zWfrMax; // Exact borders of the Wavefront
 	char WfrEdgeCorrShouldBeDone; // To switch off/on manually
 	double avgPhotEn; //averarage photon energy for time-domain simulations
+	double avgT; //OC101115 //averarage tiem (auxiliary value)
 
 	double UnderSamplingX, UnderSamplingZ;
 	char AllowAutoSwitchToPropInUnderSamplingMode;
@@ -97,6 +101,7 @@ public:
 
 	bool WfrQuadTermCanBeTreatedAtResizeX; // is used at the time of one resize only
 	bool WfrQuadTermCanBeTreatedAtResizeZ;
+	double wfrReffX, wfrReffZ; //effective wavefront radii (to be used e.g. at resize) //OC150914
 
 	char ElectronBeamEmulated; // 0 by def.
 	DOUBLE *pElecBeam;
@@ -205,7 +210,10 @@ public:
 	void OutSRWRadPtrs(SRWLWfr&);
 
 	//srTSRWRadInData* CreateCorrespSRWRadInData();
-	int ModifyWfrNeNxNz(char PolarizComp = 0);
+	//int ModifyWfrNeNxNz(char PolarizComp = 0);
+	int ModifyWfrNeNxNz(char PolarizComp = 0, bool backupIsReq = false); //OC131115
+	int DeleteWfrBackupData(char PolarizComp = 0); //OC151115
+
 	int GetWfrStructNames(srTSRWRadStructWaveNames& RadStructNames);
 	int CreateNewWfrStruct(srTSRWRadStructWaveNames& Names);
 	int DeleteWfrStructWaves(srTSRWRadStructWaveKeys& RadKeys);
@@ -233,6 +241,9 @@ public:
 	int SetRepresCA(char CoordOrAng); //set Coordinate or Angular representation
 	int SetRepresFT(char FreqOrTime); //set Frequency or Time representation
 	int ComputeRadMoments();
+
+	//void EstimWfrRadCen(double& resR, double& resCen, char cutX_or_Z, char fldX_or_Z=0, double relArgRange=0.2, double relArgCenOther=0.5);
+	bool CheckIfQuadTermTreatIsBenefit(char cutX_or_Z, char fldX_or_Z=0);
 
 	void SetupSrwWfrAuxData()
 	{
@@ -666,13 +677,15 @@ public:
 		if(ChangeSign) { Cos = -Cos; Sin = -Sin;}
 	}
 
-	void SetupExpCorrArray(float* pCmpData, long AmOfPt, double x, double qStart, double qStep)
+	//void SetupExpCorrArray(float* pCmpData, long AmOfPt, double x, double qStart, double qStep)
+	void SetupExpCorrArray(float* pCmpData, long long AmOfPt, double x, double qStart, double qStep)
 	{
 		const double TwoPi = 6.28318530717959;
 		double TwoPiX = TwoPi*x;
 		double q = qStart;
 		float *tCmpData = pCmpData;
-		for(long i=0; i<AmOfPt; i++)
+		//for(long i=0; i<AmOfPt; i++)
+		for(long long i=0; i<AmOfPt; i++)
 		{
 			double Arg = TwoPiX*q;
 			float Co, Si;
@@ -774,8 +787,10 @@ public:
 		if(TreatPolCompX) pEX0 = pBaseRadX;
 		if(TreatPolCompZ) pEZ0 = pBaseRadZ;
 
-		long PerX = ne << 1;
-		long PerZ = PerX*nx;
+		//long PerX = ne << 1;
+		//long PerZ = PerX*nx;
+		long long PerX = ne << 1;
+		long long PerZ = PerX*nx;
 
 		int ieStart=0, ieBefEnd=ne;
 		if((ieOnly >= 0) && (ieOnly < ne))
@@ -790,7 +805,8 @@ public:
 				ePh = avgPhotEn; //?? OC041108
 			}
 
-			long Two_ie = ie << 1;
+			//long Two_ie = ie << 1;
+			long long Two_ie = ie << 1;
 
 			ConstRxE = ConstRx*ePh;
 			ConstRzE = ConstRz*ePh;
@@ -813,7 +829,8 @@ public:
 
 			for(int iz=0; iz<nz; iz++)
 			{
-				long izPerZ = iz*PerZ;
+				//long izPerZ = iz*PerZ;
+				long long izPerZ = iz*PerZ;
 				float *pEX_StartForX = pEX0 + izPerZ;
 				float *pEZ_StartForX = pEZ0 + izPerZ;
 
@@ -821,7 +838,8 @@ public:
 
 				for(int ix=0; ix<nx; ix++)
 				{
-					long ixPerX_p_Two_ie = ix*PerX + Two_ie;
+					//long ixPerX_p_Two_ie = ix*PerX + Two_ie;
+					long long ixPerX_p_Two_ie = ix*PerX + Two_ie;
 
 					//Phase = ConstRxE*x*x + ConstRzE*zE2;
 					Phase = PhaseAddZ;

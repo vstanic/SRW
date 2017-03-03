@@ -32,6 +32,7 @@ Modules:
 import sys
 import uti_plot_com
 import traceback
+
 _backend = None
 
 DEFAULT_BACKEND = '<default>'
@@ -57,7 +58,7 @@ def uti_plot_init(backend=DEFAULT_BACKEND, fname_format=None):
             return
         except:
             traceback.print_exc()
-            print(backend + ': unable to import specified backend; no plots')
+            print(backend + ': unable to import specified backend (or its dependency); no plots')
     elif fname_format is not None:
         raise Value(fname_format + ': fname_format must be null if backend is None')
     _backend = _BackendNone()
@@ -81,10 +82,11 @@ def uti_plot1d(ar1d, x_range, labels=('energy [eV]', 'ph/s/0.1%bw'), units=None)
         units = [x_unit, units[1]]
         strTitle = '' if(len(labels) < 3) else labels[2]
         labels = (labels[0] + ' [' + units[0] + ']', labels[1] + ' [' + units[1] + ']', strTitle)
-    
+
+    #print('*****In uti_plot1d')    
     _backend.uti_plot1d(ar1d, x_range, labels)
 
-def uti_plot2d(ar2d, x_range, y_range, labels=('Horizontal position [m]','Vertical position [m]'), units=None):
+def uti_plot2d(ar2d, x_range, y_range, labels=('Horizontal Position [m]','Vertical Position [m]'), units=None):
     """Generate quad mesh plot from given "flattened" array
 
     :param array ar2d: data points
@@ -102,7 +104,7 @@ def uti_plot2d(ar2d, x_range, y_range, labels=('Horizontal position [m]','Vertic
 
     _backend.uti_plot2d(ar2d, x_range, y_range, labels)
 
-def uti_plot2d1d(ar2d, x_range, y_range, x=0, y=0, labels=('Horizontal position', 'Vertical position', 'Intensity'), units=None, graphs_joined=True):
+def uti_plot2d1d(ar2d, x_range, y_range, x=0, y=0, labels=('Horizontal Position', 'Vertical Position', 'Intensity'), units=None, graphs_joined=True):
     """Generate 2d quad mesh plot from given "flattened" array, and 1d cuts passing through (x, y)
 
     :param array ar2d: data points
@@ -130,12 +132,23 @@ def uti_plot2d1d(ar2d, x_range, y_range, x=0, y=0, labels=('Horizontal position'
         strTitle = 'At ' + labels[0] + ': ' + str(x)
         if x != 0: strTitle += ' ' + units[0]
         label1Y = (labels[1] + ' [' + units[1] + ']', labels[2] + ' [' + units[2] + ']', strTitle)
+        
+    else: #OC081115
+        strTitle = labels[2]
+        label2D = (labels[0], labels[1], strTitle)
 
-        labels = [label2D, label1X, label1Y]
+        strTitle = 'At ' + labels[1] + ': ' + str(y)
+        label1X = (labels[0], labels[2], strTitle)
+
+        strTitle = 'At ' + labels[0] + ': ' + str(x)
+        label1Y = (labels[1], labels[2], strTitle)
+
+    labels = [label2D, label1X, label1Y]
 
     _backend.uti_plot2d1d(ar2d, x_range, y_range, x, y, labels, graphs_joined)
     
-def uti_data_file_plot(_fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=True):
+#def uti_data_file_plot(_fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=True):
+def uti_data_file_plot(_fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=True, _traj_report=False, _traj_axis='x'): #MR29072016
     """Generate plot from configuration in _fname
 
     :param str _fname: config loaded from here
@@ -146,7 +159,8 @@ def uti_data_file_plot(_fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=
     :param bool _graphs_joined: if true, all plots in a single figure
     """
     #if '_backend' not in locals(): uti_plot_init() #?
-    _backend.uti_data_file_plot(_fname, _read_labels, _e, _x, _y, _graphs_joined)
+    #_backend.uti_data_file_plot(_fname, _read_labels, _e, _x, _y, _graphs_joined)
+    _backend.uti_data_file_plot(_fname, _read_labels, _e, _x, _y, _graphs_joined, _traj_report, _traj_axis) #MR29072016
 
 class _BackendBase(object):
     def __getattr__(self, attr):
